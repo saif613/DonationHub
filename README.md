@@ -1,4 +1,4 @@
-<img width="937" height="162" alt="image" src="https://github.com/user-attachments/assets/22b28b3a-726c-4247-8ab5-60b2ef7112e8" /># DonationHub
+# DonationHub
 
 DonationHub is a donation management platform built with **ASP.NET Core Web API, .NET 10, Entity Framework Core, and SQL Server**.
 
@@ -190,33 +190,16 @@ replaced without touching business logic. The cost is that some operations
 
 ### 8.2 Writes: Generic Repository + Unit of Work
 
-All write operations (create, update, delete) go through the Generic Repository and the Unit of Work:
-
-- Business logic is separated from data access.
-- Common persistence code is reused through the Generic Repository.
-- A single `SaveChangesAsync()` in the Unit of Work commits changes.
-- Multi-step operations run inside one transaction (`ExcuteInTRansactionAsync`).
+All writes (create, update, delete) go through the Generic Repository and the
+Unit of Work, so persistence code is reused, `SaveChangesAsync()` is called in a
+single place, and multi-step operations can run inside one transaction.
 
 ### 8.3 Reads: DbContext directly with AsNoTracking + DTO projection
 
-Per **SRS §3.3, Rule 5**, read queries use `DbContext` directly instead of the Generic Repository:
-
-- **AsNoTracking:** no change tracking for read-only queries, lowering memory use and improving speed.
-- **DTO projection:** `Select()` fetches only the needed columns and returns DTOs instead of full entities.
-
-Illustrative example:
-
-```csharp
-var items = await _context.Categories
-    .AsNoTracking()
-    .OrderBy(c => c.NameEn)
-    .Select(c => new CategoryListItemDto(c.Id, c.NameEn))
-    .ToListAsync(ct);
-```
-
-### 8.4 Clean Architecture
-
-Responsibilities are split across Domain, Application, Infrastructure and API, reducing coupling and making the code easier to test and extend.
+Per **SRS §3.3, Rule 5**, read queries bypass the Generic Repository and query
+`DbContext` directly. Reads don't need change tracking or domain behavior, so
+`AsNoTracking` and `Select()` into DTOs fetch only the columns the response
+needs, and the Generic Repository stays focused on writes.
 
 ---
 
