@@ -188,18 +188,26 @@ so the domain model can be tested in isolation and the identity provider can be
 replaced without touching business logic. The cost is that some operations
 (e.g. creating a user) must create both records inside one transaction.
 
-### 8.2 Writes: Generic Repository + Unit of Work
+### 8.2 Data access: all operations go through repositories + Unit of Work
 
-All writes (create, update, delete) go through the Generic Repository and the
-Unit of Work, so persistence code is reused, `SaveChangesAsync()` is called in a
-single place, and multi-step operations can run inside one transaction.
+Both writes and reads go through the repository interfaces (generic and
+specific, such as `ICategoryRepository`) and the Unit of Work, instead of using
+`DbContext` directly for reads as suggested by **SRS §3.3, Rule 5**.
 
-### 8.3 Reads: DbContext directly with AsNoTracking + DTO projection
+The reasons:
 
-Per **SRS §3.3, Rule 5**, read queries bypass the Generic Repository and query
-`DbContext` directly. Reads don't need change tracking or domain behavior, so
-`AsNoTracking` and `Select()` into DTOs fetch only the columns the response
-needs, and the Generic Repository stays focused on writes.
+- **Services stay free of persistence code.** Application services depend only
+  on repository interfaces, so they never touch `DbContext` or EF Core, and every
+  query lives in one place (the repositories) where it can be reused and changed.
+- **One consistent approach.** The project is small, and using a single data
+  access path for reads and writes is simpler than maintaining two.
+- **Writes** are committed through a single `SaveChangesAsync()` in the Unit of
+  Work, and multi-step operations can run inside one transaction.
+
+Read queries inside the repositories still use `AsNoTracking`, and entities are
+mapped to response DTOs in the service layer. The trade-off is that reads load
+full entities instead of projecting only the needed columns with `Select()`;
+this can be optimized later with dedicated repository methods if needed.
 
 ---
 
