@@ -1,4 +1,4 @@
-# DonationHub
+<img width="937" height="162" alt="image" src="https://github.com/user-attachments/assets/22b28b3a-726c-4247-8ab5-60b2ef7112e8" /># DonationHub
 
 DonationHub is a donation management platform built with **ASP.NET Core Web API, .NET 10, Entity Framework Core, and SQL Server**.
 
@@ -176,7 +176,19 @@ Swagger UI is not configured in this project; Scalar is used instead.
 
 ## 8. Design Decisions
 
-### 8.1 Writes: Generic Repository + Unit of Work
+### 8.1 Separating the Domain User from the Identity User
+
+Authentication data (email, password hash, roles) lives in `ApplicationUser`
+(Infrastructure/Identity, managed by ASP.NET Core Identity), while business data
+(full name, preferred language, active status, audit fields) lives in the
+`User` domain entity. Both share the same `Id`.
+
+This keeps the Domain layer free from any dependency on ASP.NET Core Identity,
+so the domain model can be tested in isolation and the identity provider can be
+replaced without touching business logic. The cost is that some operations
+(e.g. creating a user) must create both records inside one transaction.
+
+### 8.2 Writes: Generic Repository + Unit of Work
 
 All write operations (create, update, delete) go through the Generic Repository and the Unit of Work:
 
@@ -185,7 +197,7 @@ All write operations (create, update, delete) go through the Generic Repository 
 - A single `SaveChangesAsync()` in the Unit of Work commits changes.
 - Multi-step operations run inside one transaction (`ExcuteInTRansactionAsync`).
 
-### 8.2 Reads: DbContext directly with AsNoTracking + DTO projection
+### 8.3 Reads: DbContext directly with AsNoTracking + DTO projection
 
 Per **SRS §3.3, Rule 5**, read queries use `DbContext` directly instead of the Generic Repository:
 
@@ -202,7 +214,7 @@ var items = await _context.Categories
     .ToListAsync(ct);
 ```
 
-### 8.3 Clean Architecture
+### 8.4 Clean Architecture
 
 Responsibilities are split across Domain, Application, Infrastructure and API, reducing coupling and making the code easier to test and extend.
 
