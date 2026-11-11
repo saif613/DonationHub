@@ -1,12 +1,21 @@
 ﻿using Asp.Versioning;
-using DonationHub.Application.DTOs.Requests;
-using DonationHub.Application.DTOs.Responses;
+using DonationHub.Application.Features.Categories.Commands.CreateCategory;
+using DonationHub.Application.Features.Categories.Commands.DeleteCategory;
+using DonationHub.Application.Features.Categories.Commands.UpdateCategory;
+using DonationHub.Application.Features.Categories.Queries.GetAllCategories;
+using DonationHub.Application.Features.Categories.Queries.GetCategoryById;
+using DonationHub.Application.Features.Categories.Queries.GetPagedCategories;
+using DonationHub.Application.Features.Category.DTOs.Requests;
+using DonationHub.Application.Features.Category.DTOs.Responses;
+using DonationHub.Application.Features.DTOs.Responses;
 using DonationHub.Application.Features.Interfaces;
 using DonationHub.Domain.Constants;
 using DonationHub.Domain.Entities;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace DonationHub.Api.Controllers.V1
 {
@@ -16,11 +25,11 @@ namespace DonationHub.Api.Controllers.V1
     [Authorize(Roles = Roles.Admin)]
     public class CategoryController : ControllerBase
     {
-        private readonly ICategoryService _categoryService;
+        private readonly IMediator _mediator;
 
-        public CategoryController(ICategoryService categoryService)
+        public CategoryController(IMediator mediator)
         {
-            _categoryService = categoryService;
+            _mediator = mediator;
         }
 
         [AllowAnonymous]
@@ -29,7 +38,7 @@ namespace DonationHub.Api.Controllers.V1
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<IReadOnlyList<CategoryResponseDto>>> GetAll(CancellationToken ct = default)
         {
-            var categories = await _categoryService.GetAllAsync(ct);
+            var categories = await _mediator.Send(new GetAllCategoriesQuery(), ct);
             return Ok(categories);
         }
 
@@ -39,7 +48,7 @@ namespace DonationHub.Api.Controllers.V1
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<CategoryResponseDto>> GetById(Guid id, CancellationToken ct = default)
         {
-            var category = await _categoryService.GetByIdAsync(id, ct);
+            var category = await _mediator.Send(new GetCategoryByIdQuery(id), ct);
             return Ok(category);
         }
 
@@ -49,9 +58,9 @@ namespace DonationHub.Api.Controllers.V1
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        public async Task<ActionResult<CategoryResponseDto>> Create([FromBody] CategoryRequestDto requestDto, CancellationToken ct = default)
+        public async Task<ActionResult<CategoryResponseDto>> Create([FromBody] CreateCategoryCommand command, CancellationToken ct = default)
         {
-            var category = await _categoryService.CreateAsync(requestDto, ct);
+            var category = await _mediator.Send(command);
             return StatusCode(StatusCodes.Status201Created, category);
         }
 
@@ -62,9 +71,9 @@ namespace DonationHub.Api.Controllers.V1
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
 
-        public async Task<ActionResult<CategoryResponseDto>> Update([FromBody] CategoryRequestDto requestDto, Guid id, CancellationToken ct = default)
+        public async Task<ActionResult<CategoryResponseDto>> Update(Guid id, [FromBody] UpdateCategoryCommand command, CancellationToken ct = default)
         {
-            var category = await _categoryService.Update(requestDto, id, ct);
+            var category = await _mediator.Send(command, ct);
 
             return Ok(category);
         }
@@ -77,7 +86,7 @@ namespace DonationHub.Api.Controllers.V1
 
         public async Task<ActionResult> Delete(Guid id, CancellationToken ct = default)
         {
-            await _categoryService.SoftDelete(id, ct);
+            await _mediator.Send(new DeleteCategoryCommand(id), ct);
             return NoContent();
         }
 
@@ -85,9 +94,9 @@ namespace DonationHub.Api.Controllers.V1
         [HttpGet("paged")]
         [ProducesResponseType(typeof(PagedResponse<CategoryResponseDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<PagedResponse<CategoryResponseDto>>> GetPaged([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, CancellationToken ct = default)
+        public async Task<ActionResult<PagedResponse<CategoryResponseDto>>> GetPaged([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10,CancellationToken ct = default)
         {
-            var category = await _categoryService.PagedAsync(pageNumber, pageSize, ct);
+            var category = await _mediator.Send(new GetPagedCategoriesQuery(pageNumber, pageSize), ct);
 
             return Ok(category);
         }

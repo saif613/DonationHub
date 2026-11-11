@@ -3,18 +3,17 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 
-namespace DonationHub.Application.DTOs.Requests
+namespace DonationHub.Application.Features.DTOs.Requests
 {
-    public record CreateStaffRequestDto(
+    public record RegisterRequestDto(
         [Required]
-        [EmailAddress(ErrorMessage = "InvalidEmailFormat")]
+        [EmailAddress]
         string Email,
         [Required]
         [StringLength(150, MinimumLength = 2)]
         string FullName,
         [Required]
-        string Role,
+        string Password,
         string PreferredLanguage = "en"
     );
-
 }

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 
-namespace DonationHub.Application.DTOs.Responses
+namespace DonationHub.Application.Features.Category.DTOs.Responses
 {
     public record CategoryResponseDto(
         Guid id,

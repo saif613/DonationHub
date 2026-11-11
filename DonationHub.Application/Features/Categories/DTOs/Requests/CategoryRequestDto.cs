@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 
-namespace DonationHub.Application.DTOs.Requests
+namespace DonationHub.Application.Features.Category.DTOs.Requests
 {
     public record CategoryRequestDto(
         [Required]

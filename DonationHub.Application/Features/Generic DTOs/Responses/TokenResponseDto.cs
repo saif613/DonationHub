@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace DonationHub.Application.DTOs.Responses
+namespace DonationHub.Application.Features.DTOs.Responses
 {
     public record TokenResponseDto
     {

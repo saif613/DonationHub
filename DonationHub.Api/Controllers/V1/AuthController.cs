@@ -1,7 +1,7 @@
 ﻿using Asp.Versioning;
 using Azure.Core;
-using DonationHub.Application.DTOs.Requests;
-using DonationHub.Application.DTOs.Responses;
+using DonationHub.Application.Features.DTOs.Requests;
+using DonationHub.Application.Features.DTOs.Responses;
 using DonationHub.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;

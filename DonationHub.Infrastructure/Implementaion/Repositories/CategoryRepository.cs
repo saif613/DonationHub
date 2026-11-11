@@ -13,9 +13,9 @@ namespace DonationHub.Infrastructure.Implementaion.Repositories
     {
         public CategoryRepository(AppDbContext context) : base(context) { }
 
-        public Task<bool> ExistsByNameArAsync(string nameAr, CancellationToken ct = default) => _dbSet.AsNoTracking().AnyAsync(c => c.NameAr == nameAr);
+        public Task<bool> ExistsByNameArAsync(string nameAr, Guid? excludeId = null, CancellationToken ct = default) => _dbSet.AsNoTracking().AnyAsync(c => c.NameAr == nameAr && (!excludeId.HasValue || c.Id != excludeId.Value), ct);
 
-        public Task<bool> ExistsByNameEnAsync(string nameEn, CancellationToken ct = default) => _dbSet.AsNoTracking().AnyAsync(c => c.NameEn == nameEn);
+        public Task<bool> ExistsByNameEnAsync(string nameEn, Guid? excludeId = null, CancellationToken ct = default) => _dbSet.AsNoTracking().AnyAsync(c => c.NameEn == nameEn &&(!excludeId.HasValue || c.Id != excludeId.Value), ct);
 
         public async Task<(IReadOnlyList<Category> Items, int TotalCount)> GetPagedAsync(int page, int pageSize, CancellationToken ct = default)
         {

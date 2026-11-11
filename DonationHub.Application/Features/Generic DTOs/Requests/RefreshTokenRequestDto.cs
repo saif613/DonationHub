@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 
-namespace DonationHub.Application.DTOs.Requests
+namespace DonationHub.Application.Features.DTOs.Requests
 {
-    public record LogoutRequestDto(
+    public record RefreshTokenRequestDto
+    (
         [Required]
-        string RefreshToken
+       string RefreshToken
     );
 }

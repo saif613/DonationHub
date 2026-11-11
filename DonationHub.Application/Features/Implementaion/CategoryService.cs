@@ -1,14 +1,13 @@
-﻿using DonationHub.Application.DTOs.Requests;
-using DonationHub.Application.DTOs.Responses;
-using DonationHub.Application.Exceptions;
+﻿using DonationHub.Application.Exceptions;
+using DonationHub.Application.Features.Category.DTOs.Requests;
+using DonationHub.Application.Features.Category.DTOs.Responses;
+using DonationHub.Application.Features.DTOs.Responses;
 using DonationHub.Application.Features.Interfaces;
 using DonationHub.Application.Interfaces.Repositories;
 using DonationHub.Application.Interfaces.Services;
 using DonationHub.Application.Interfaces.UnitOfWork;
-using DonationHub.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using CategoryEntity = DonationHub.Domain.Entities.Category;
+
 
 namespace DonationHub.Application.Features.Implementaion
 {
@@ -33,13 +32,13 @@ namespace DonationHub.Application.Features.Implementaion
             var nameAr = request.NameAr.Trim();
             var nameEn = request.NameEn.Trim();
 
-            if (await _categoryRepository.ExistsByNameArAsync(nameAr, ct))
+            if (await _categoryRepository.ExistsByNameArAsync(nameAr, ct:ct))
                 throw new AppException("Category.ArNameAlreadyExists", 409);
 
-            if (await _categoryRepository.ExistsByNameEnAsync(nameEn, ct))
+            if (await _categoryRepository.ExistsByNameEnAsync(nameEn, ct:ct))
                 throw new AppException("Category.EnNameAlreadyExists", 409);
 
-            var category = Category.Create(nameAr, nameEn, request.DescriptionAr, request.DescriptionEn, GetUtcNow(), _currentUser.UserId);
+            var category = CategoryEntity.Create(nameAr, nameEn, request.DescriptionAr, request.DescriptionEn, GetUtcNow(), _currentUser.UserId);
 
             await _categoryRepository.AddAsync(category, ct);
             await _unitOfWork.SaveChangesAsync(ct);
@@ -116,10 +115,10 @@ namespace DonationHub.Application.Features.Implementaion
             var nameAr = request.NameAr.Trim();
             var nameEn = request.NameEn.Trim();
 
-            if (await _categoryRepository.ExistsByNameArAsync(nameAr, ct))
+            if (await _categoryRepository.ExistsByNameArAsync(nameAr, ct:ct))
                 throw new AppException("Category.ArNameAlreadyExists", 409);
 
-            if (await _categoryRepository.ExistsByNameEnAsync(nameEn, ct))
+            if (await _categoryRepository.ExistsByNameEnAsync(nameEn, ct:ct))
                 throw new AppException("Category.EnNameAlreadyExists", 409);
 
             category.Update(nameAr, nameEn, request.DescriptionAr, request.DescriptionEn, GetUtcNow(), _currentUser.UserId);
