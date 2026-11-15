@@ -1,5 +1,8 @@
 ﻿using DonationHub.Application.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
+using System.Diagnostics;
 
 namespace DonationHub.Api.ExceptionHandlers
 {
@@ -13,33 +16,25 @@ namespace DonationHub.Api.ExceptionHandlers
         }
         public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
         {
+            var traceId = Activity.Current?.Id ?? httpContext.TraceIdentifier;
 
-            if(exception is OperationCanceledException)
+            _logger.LogError(exception, "Unhandled exception. TraceId: {TraceId}", traceId);
+
+            var problemDetails = new ProblemDetails
             {
-                httpContext.Response.StatusCode = 499;
-                return true;
-            }
+                Type = "https://httpstatuses.io/500",
+                Title = "An unexpected error occurred",
+                Status = StatusCodes.Status500InternalServerError,
+                Instance = httpContext.Request.Path
+            };
 
-            var (statusCode, errorCode) = exception is AppException appException ? 
-                (appException.StatusCode, appException.ErrorCode) :
-                (StatusCodes.Status500InternalServerError, "General.InternalServerError");
+            problemDetails.Extensions["code"] = "General.InternalServerError";
+            problemDetails.Extensions["traceId"] = traceId;
 
-            if (statusCode == StatusCodes.Status500InternalServerError)
-            {
-                _logger.LogError(exception, "Server error. ErrorCode: {ErrorCode}", errorCode);
-            }
-            else
-            {
-                _logger.LogWarning("Request failed. ErrorCode: {ErrorCode}", errorCode);
-            }
+            httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            httpContext.Response.ContentType = "application/problem+json";
 
-
-            httpContext.Response.StatusCode = statusCode;
-
-            await httpContext.Response.WriteAsJsonAsync(new
-            {
-                ErrorCode = errorCode
-            }, cancellationToken);
+            await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
 
             return true;
         }
