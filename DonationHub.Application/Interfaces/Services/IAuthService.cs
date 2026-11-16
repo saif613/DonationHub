@@ -1,5 +1,5 @@
-﻿using DonationHub.Application.DTOs.Requests;
-using DonationHub.Application.DTOs.Responses;
+﻿using DonationHub.Application.Features.DTOs.Requests;
+using DonationHub.Application.Features.DTOs.Responses;
 using System;
 using System.Collections.Generic;
 using System.Text;

@@ -1,6 +1,6 @@
 ﻿using Asp.Versioning;
-using DonationHub.Application.DTOs.Requests;
-using DonationHub.Application.DTOs.Responses;
+using DonationHub.Application.Features.DTOs.Requests;
+using DonationHub.Application.Features.DTOs.Responses;
 using DonationHub.Application.Interfaces.Services;
 using DonationHub.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;

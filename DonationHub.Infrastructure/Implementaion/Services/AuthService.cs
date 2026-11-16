@@ -1,7 +1,7 @@
 ﻿using Azure.Core;
-using DonationHub.Application.DTOs.Requests;
-using DonationHub.Application.DTOs.Responses;
 using DonationHub.Application.Exceptions;
+using DonationHub.Application.Features.DTOs.Requests;
+using DonationHub.Application.Features.DTOs.Responses;
 using DonationHub.Application.Interfaces.Repositories;
 using DonationHub.Application.Interfaces.Services;
 using DonationHub.Application.Interfaces.UnitOfWork;
