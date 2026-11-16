@@ -48,10 +48,8 @@ namespace DonationHub.Application.Behaviors
         private static Tresponse CreateValidationResult(IReadOnlyDictionary<string, string[]> propertyErrors)
         {
             if(typeof(Tresponse) == typeof(Result))
-            {
                 return (Tresponse)(object)Result.Failure(Errors.Validation.Failed, propertyErrors);
-            }
-
+            
             var responseType = typeof(Tresponse);
 
             if(responseType.IsGenericType && responseType.GetGenericTypeDefinition() == typeof(Result<>))

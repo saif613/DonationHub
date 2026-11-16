@@ -1,5 +1,4 @@
-﻿using DonationHub.Application.Features.Category.DTOs.Requests;
-using DonationHub.Application.Features.Category.DTOs.Responses;
+﻿using DonationHub.Application.Features.Category.DTOs.Responses;
 using DonationHub.Domain.Common.Results;
 using MediatR;
 using System;
