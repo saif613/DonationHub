@@ -1,7 +1,5 @@
-﻿using DonationHub.Application.Exceptions;
-using Microsoft.AspNetCore.Diagnostics;
+﻿using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.WebUtilities;
 using System.Diagnostics;
 
 namespace DonationHub.Api.ExceptionHandlers

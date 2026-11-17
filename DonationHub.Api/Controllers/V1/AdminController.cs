@@ -1,10 +1,10 @@
 ﻿using Asp.Versioning;
-using DonationHub.Application.Features.DTOs.Requests;
-using DonationHub.Application.Features.DTOs.Responses;
-using DonationHub.Application.Interfaces.Services;
+using DonationHub.Api.Extensions;
+using DonationHub.Application.Features.Users.Commands.CreateStaff;
+using DonationHub.Application.Features.Users.DTOs;
 using DonationHub.Domain.Constants;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DonationHub.Api.Controllers.V1
@@ -15,17 +15,21 @@ namespace DonationHub.Api.Controllers.V1
     [Authorize(Roles = Roles.Admin)]
     public class AdminController : ControllerBase
     {
-        private readonly IUserService _userService;
-        public AdminController(IUserService userService)
+        private readonly IMediator _mediator;
+        public AdminController(IMediator mediator)
         {
-            _userService = userService;
+            _mediator = mediator;
         }
         [HttpPost("staff")]
         [ProducesResponseType(typeof(CreateStaffResponseDto), StatusCodes.Status201Created)]
-        public async Task<ActionResult<CreateStaffResponseDto>> CreateStaff([FromBody] CreateStaffRequestDto request, CancellationToken ct = default)
+        public async Task<ActionResult<CreateStaffResponseDto>> CreateStaff([FromBody] CreateStaffCommand command, CancellationToken ct = default)
         {
-            var response = await _userService.CreateStaffAsync(request, ct);
-            return StatusCode(StatusCodes.Status201Created, response);
+            var result = await _mediator.Send(command, ct);
+
+            if (result.IsFailure)
+                return result.ToProblem(HttpContext);
+
+            return StatusCode(StatusCodes.Status201Created, result.Value);
         }
     }
 }

@@ -34,6 +34,7 @@ public class RefreshToken : SoftDeletableEntity
 
         return new RefreshToken
         {
+            Id = Guid.NewGuid(),
             UserId = userId,
             TokenHash = tokenHash,
             CreatedAt = createdAt,

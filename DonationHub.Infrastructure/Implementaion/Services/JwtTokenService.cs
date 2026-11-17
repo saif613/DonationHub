@@ -1,4 +1,5 @@
 ﻿using DonationHub.Application.Interfaces.Services;
+using DonationHub.Application.Options;
 using DonationHub.Domain.Entities;
 using DonationHub.Infrastructure.Options;
 using Microsoft.AspNetCore.Identity;

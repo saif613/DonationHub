@@ -1,10 +1,13 @@
 ﻿using Asp.Versioning;
-using DonationHub.Application.Features.DTOs.Requests;
-using DonationHub.Application.Features.DTOs.Responses;
-using DonationHub.Application.Interfaces.Services;
+using DonationHub.Api.Extensions;
+using DonationHub.Application.Features.Users.Commands.ActivateUser;
+using DonationHub.Application.Features.Users.Commands.ChangeLanguage;
+using DonationHub.Application.Features.Users.Commands.DeactivateUser;
+using DonationHub.Application.Features.Users.Commands.UpdateProfile;
+using DonationHub.Application.Features.Users.DTOs;
 using DonationHub.Domain.Constants;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DonationHub.Api.Controllers.V1
@@ -15,53 +18,70 @@ namespace DonationHub.Api.Controllers.V1
     
     public class UserController : ControllerBase
     {
-        private readonly IUserService _userService;
-        public UserController(IUserService userService)
+        private readonly IMediator _mediator;
+        public UserController(IMediator mediator)
         {
-            _userService = userService;
+            _mediator = mediator;
         }
 
         [Authorize(Roles = Roles.Admin)]
         [HttpPost("{userId:guid}/activate")]
-        [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<UserResponseDto>> ActivateUser(Guid userId, CancellationToken ct = default)
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ProblemDetails) ,StatusCodes.Status404NotFound)]
+        public async Task<ActionResult> ActivateUser(Guid userId, CancellationToken ct = default)
         {
-            await _userService.ActivateUserAsync(userId, ct);
+            var result = await _mediator.Send(new ActivateUserCommand(userId), ct);
+
+            if (result.IsFailure)
+                return result.ToProblem(HttpContext);
+
             return NoContent();
         }
 
         [Authorize(Roles = Roles.Admin)]
         [HttpPost("{userId:guid}/deactivate")]
-        [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status200OK)]
-        public async Task<ActionResult<UserResponseDto>> DeactivateUser(Guid userId, CancellationToken ct = default)
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult> DeactivateUser(Guid userId, CancellationToken ct = default)
         {
-            await _userService.DeactivateUserAsync(userId, ct);
+            var result = await _mediator.Send(new DeactivateUserCommand(userId), ct);
+
+            if (result.IsFailure)
+                return result.ToProblem(HttpContext);
+
             return NoContent();
         }
 
         [Authorize]
         [HttpPatch("me/language")]
         [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status200OK)]
-
-        public async Task<ActionResult<UserResponseDto>> ChangeLanguage(Guid userId,[FromQuery] string language, CancellationToken ct = default)
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<UserResponseDto>> ChangeLanguage([FromBody] string language, CancellationToken ct = default)
         {
-            var updatedUser = await _userService.ChangeUserLanguageAsync(userId, language, ct);
-            return Ok(updatedUser);
+            var result = await _mediator.Send(new ChangeLanguageCommand(language), ct);
+
+            if (result.IsFailure)
+                return result.ToProblem(HttpContext);
+
+            return Ok(result.Value);
         }
 
         [Authorize]
         [HttpPut("profile")]
         [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status409Conflict)]
-        public async Task<ActionResult<UserResponseDto>> UpdateProfile([FromBody] UpdateProfileRequestDto request, CancellationToken ct = default)
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+        public async Task<ActionResult<UserResponseDto>> UpdateProfile([FromBody] UpdateProfileCommand command, CancellationToken ct = default)
         {
-            var result = await _userService.UpdateProfileAsync(request, ct);
+            var result = await _mediator.Send(command, ct);
 
-            return Ok(result);
+            if (result.IsFailure)
+                return result.ToProblem(HttpContext);
+
+            return Ok(result.Value);
         }
     }
 }
