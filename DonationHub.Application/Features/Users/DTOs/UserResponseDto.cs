@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace DonationHub.Application.Features.DTOs.Responses
+namespace DonationHub.Application.Features.Users.DTOs
 {
     public record UserResponseDto(
          string Email,

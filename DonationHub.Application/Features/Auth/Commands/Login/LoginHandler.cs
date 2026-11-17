@@ -33,16 +33,16 @@ public sealed class LoginHandler : IRequestHandler<LoginCommand, Result<TokenRes
     }
 
     private DateTime GetUtcNow() => _timeProvider.GetUtcNow().UtcDateTime;
-    public async Task<Result<TokenResponseDto>> Handle(LoginCommand request, CancellationToken ct = default)
+    public async Task<Result<TokenResponseDto>> Handle(LoginCommand request, CancellationToken ct)
     {       
-        var applicationUser = await _identityService.FindByEmailAsync(request.Email);
+        var applicationUser = await _identityService.FindByEmailAsync(request.Email, ct);
 
         if (applicationUser is null)
             return Errors.Auth.InvalidCredentials;
 
         var userId = applicationUser.Id;        
         
-        var passwordValid = await _identityService.CheckPasswordAsync(userId, request.Password);
+        var passwordValid = await _identityService.CheckPasswordAsync(userId, request.Password, ct);
 
         if (!passwordValid)
             return Errors.Auth.InvalidCredentials;
@@ -55,7 +55,7 @@ public sealed class LoginHandler : IRequestHandler<LoginCommand, Result<TokenRes
         if (!user.IsActive)
             return Errors.Auth.AccountDeactivated;
 
-        var roles = await _identityService.GetRolesAsync(userId);
+        var roles = await _identityService.GetRolesAsync(userId, ct);
 
         var now = GetUtcNow();
 

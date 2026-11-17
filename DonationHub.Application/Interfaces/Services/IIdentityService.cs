@@ -8,12 +8,13 @@ namespace DonationHub.Application.Interfaces.Services
 {
     public interface IIdentityService
     {
-        Task<Result> CreateUserAsync(Guid userId, string email, string password);
-        Task<Result> AddToRoleAsync(Guid userId, string role);
-        Task<IdentityUserInfo?> FindByEmailAsync(string email);
-        Task<IdentityUserInfo?> FindByIdAsync(Guid userId);
-        Task<bool> CheckPasswordAsync(Guid userId, string password);
-        Task<Result> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword);
-        Task<IReadOnlyList<string>> GetRolesAsync(Guid userId);
-    }
+        Task<Result> CreateUserAsync(Guid userId, string email, string password, CancellationToken ct = default);
+        Task<Result> AddToRoleAsync(Guid userId, string role, CancellationToken ct = default);
+        Task<IdentityUserInfo?> FindByEmailAsync(string email, CancellationToken ct = default);
+        Task<IdentityUserInfo?> FindByIdAsync(Guid userId, CancellationToken ct = default);
+        Task<bool> CheckPasswordAsync(Guid userId, string password, CancellationToken ct = default);
+        Task<Result> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword, CancellationToken ct = default);
+        Task<IReadOnlyList<string>> GetRolesAsync(Guid userId, CancellationToken ct = default);
+        Task<Result> UpdateEmailAsync(Guid userId, string newEmail, CancellationToken ct = default);
+     }
 }

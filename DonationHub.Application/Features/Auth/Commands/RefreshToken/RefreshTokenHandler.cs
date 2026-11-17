@@ -1,12 +1,9 @@
-﻿using DonationHub.Application.Exceptions;
-using DonationHub.Application.Features.Auth.DTOs.Response;
-using DonationHub.Application.Features.DTOs.Requests;
+﻿using DonationHub.Application.Features.Auth.DTOs.Response;
 using DonationHub.Application.Interfaces.Repositories;
 using DonationHub.Application.Interfaces.Services;
 using DonationHub.Application.Interfaces.UnitOfWork;
 using DonationHub.Application.Options;
 using DonationHub.Domain.Common.Results;
-using DonationHub.Domain.Entities;
 using MediatR;
 using Microsoft.Extensions.Options;
 using RefreshTokenEntity = DonationHub.Domain.Entities.RefreshToken;
@@ -36,7 +33,7 @@ public sealed class RefreshTokenHandler : IRequestHandler<RefreshTokenCommand, R
     }
 
     private DateTime GetUtcNow() => _timeProvider.GetUtcNow().UtcDateTime;
-    public async Task<Result<TokenResponseDto>> Handle(RefreshTokenCommand request, CancellationToken ct = default)
+    public async Task<Result<TokenResponseDto>> Handle(RefreshTokenCommand request, CancellationToken ct)
     {
         var tokenHash = Helpers.RefreshTokenHelper.Hash(request.RefreshToken);
 
@@ -57,12 +54,12 @@ public sealed class RefreshTokenHandler : IRequestHandler<RefreshTokenCommand, R
         if (!user.IsActive)
             return Errors.Auth.AccountDeactivated;
 
-        var applicationUser = await _identityService.FindByIdAsync(userId);
+        var applicationUser = await _identityService.FindByIdAsync(userId, ct);
 
         if (applicationUser is null)
             return Errors.Auth.UserNotFound;
 
-        var roles = await _identityService.GetRolesAsync(userId);
+        var roles = await _identityService.GetRolesAsync(userId, ct);
 
         var accessTokenExpiresAt = utcNow.AddMinutes(_jwtOptions.Value.ExpiryMinutes);
 

@@ -1,13 +1,9 @@
-﻿using DonationHub.Application.Exceptions;
-using DonationHub.Application.Features.Category.DTOs.Responses;
+﻿using DonationHub.Application.Features.Category.DTOs.Responses;
 using DonationHub.Application.Interfaces.Repositories;
 using DonationHub.Application.Interfaces.Services;
 using DonationHub.Application.Interfaces.UnitOfWork;
 using DonationHub.Domain.Common.Results;
 using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using CategoryEntity = DonationHub.Domain.Entities.Category;
 
 namespace DonationHub.Application.Features.Categories.Commands.CreateCategory

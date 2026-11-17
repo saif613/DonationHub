@@ -1,6 +1,4 @@
-﻿using DonationHub.Application.Exceptions;
-using DonationHub.Application.Features.DTOs.Requests;
-using DonationHub.Application.Interfaces.Repositories;
+﻿using DonationHub.Application.Interfaces.Repositories;
 using DonationHub.Application.Interfaces.Services;
 using DonationHub.Application.Interfaces.UnitOfWork;
 using DonationHub.Domain.Common.Results;
@@ -24,7 +22,7 @@ public sealed class LogoutHandler : IRequestHandler<LogoutCommand, Result>
     }
 
     private DateTime GetUtcNow() => _timeProvider.GetUtcNow().UtcDateTime;
-    public async Task<Result> Handle(LogoutCommand request, CancellationToken ct = default)
+    public async Task<Result> Handle(LogoutCommand request, CancellationToken ct)
     {
         var userId = _currentUser.UserId;
 

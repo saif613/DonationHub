@@ -24,21 +24,21 @@ public sealed class RegisterHandler : IRequestHandler<RegisterCommand, Result>
     }
 
     private DateTime GetUtcNow() => _timeProvider.GetUtcNow().UtcDateTime;
-    public async Task<Result> Handle(RegisterCommand request, CancellationToken ct = default)
+    public async Task<Result> Handle(RegisterCommand request, CancellationToken ct)
     {
         var now = GetUtcNow();
         var newId = Guid.NewGuid();
 
-        if (await _identityService.FindByEmailAsync(request.Email) is not null)
+        if (await _identityService.FindByEmailAsync(request.Email, ct) is not null)
             return Errors.Auth.EmailAlreadyExists;
         return await _unitOfWork.ExcuteInTRansactionAsync(async () =>
         {           
-            var createResult = await _identityService.CreateUserAsync(newId, request.Email, request.Password);
+            var createResult = await _identityService.CreateUserAsync(newId, request.Email, request.Password, ct);
 
             if (createResult.IsFailure)
                 return createResult;
 
-            var roleResult = await _identityService.AddToRoleAsync(newId, Roles.Donor);
+            var roleResult = await _identityService.AddToRoleAsync(newId, Roles.Donor, ct);
 
             if (roleResult.IsFailure)
                 return roleResult;

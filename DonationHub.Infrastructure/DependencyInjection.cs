@@ -74,7 +74,6 @@ namespace DonationHub.Infrastructure
 
             // Services         
             services.AddScoped<IIdentityService, IdentityService>();
-            services.AddScoped<IUserService, UserService>();
             services.AddScoped<IJwtTokenService, JwtTokenService>();
 
             services.AddScoped<DbSeeder>();

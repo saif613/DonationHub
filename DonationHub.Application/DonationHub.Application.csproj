@@ -20,10 +20,7 @@
 
   <ItemGroup>
     <Folder Include="Features\Auth\Commands\" />
-    <Folder Include="Features\Auth\Queries\" />
-    <Folder Include="Features\Users\DTOs\" />
     <Folder Include="Features\Users\Commands\" />
-    <Folder Include="Features\Users\Queries\" />
   </ItemGroup>
 
 </Project>

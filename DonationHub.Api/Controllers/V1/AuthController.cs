@@ -7,7 +7,6 @@ using DonationHub.Application.Features.Auth.Commands.RefreshToken;
 using DonationHub.Application.Features.Auth.Commands.Register;
 using DonationHub.Application.Features.Auth.DTOs.Response;
 using DonationHub.Application.Features.Auth.Queries.GetCurrentUser;
-using DonationHub.Application.Features.DTOs.Responses;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

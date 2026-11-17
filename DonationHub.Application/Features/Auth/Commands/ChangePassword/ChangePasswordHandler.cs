@@ -1,5 +1,4 @@
-﻿using DonationHub.Application.Exceptions;
-using DonationHub.Application.Interfaces.Repositories;
+﻿using DonationHub.Application.Interfaces.Repositories;
 using DonationHub.Application.Interfaces.Services;
 using DonationHub.Application.Interfaces.UnitOfWork;
 using DonationHub.Domain.Common.Results;
@@ -26,7 +25,7 @@ public sealed class ChangePasswordHandler : IRequestHandler<ChangePasswordComman
     }
 
     private DateTime GetUtcNow() => _timeProvider.GetUtcNow().UtcDateTime;
-    public async Task<Result> Handle(ChangePasswordCommand request, CancellationToken ct = default)
+    public async Task<Result> Handle(ChangePasswordCommand request, CancellationToken ct)
     {
         var userId = _currentUser.UserId;
 
@@ -35,7 +34,7 @@ public sealed class ChangePasswordHandler : IRequestHandler<ChangePasswordComman
 
         return await _unitOfWork.ExcuteInTRansactionAsync(async () =>
         {
-            var result = await _identityService.ChangePasswordAsync(userId.Value, request.CurrentPassword, request.NewPassword);
+            var result = await _identityService.ChangePasswordAsync(userId.Value, request.CurrentPassword, request.NewPassword, ct);
 
             if (result.IsFailure)
                 return result;
