@@ -1,10 +1,9 @@
-﻿using Microsoft.Extensions.Configuration;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 
-namespace DonationHub.Infrastructure.Options
+namespace DonationHub.Application.Options
 {
     public class JwtOptions
     {

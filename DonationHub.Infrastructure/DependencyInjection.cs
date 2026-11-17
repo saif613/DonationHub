@@ -1,6 +1,7 @@
 ﻿using DonationHub.Application.Interfaces.Repositories;
 using DonationHub.Application.Interfaces.Services;
 using DonationHub.Application.Interfaces.UnitOfWork;
+using DonationHub.Application.Options;
 using DonationHub.Infrastructure.Identity;
 using DonationHub.Infrastructure.Implementaion.Repositories;
 using DonationHub.Infrastructure.Implementaion.Services;
@@ -34,6 +35,8 @@ namespace DonationHub.Infrastructure
 
             //Current Service
             services.AddScoped<ICurrentUserService, CurrentUserService>();
+
+            
 
             // Interceptors
             services.AddScoped<SoftDeleteInterceptor>();
@@ -69,8 +72,8 @@ namespace DonationHub.Infrastructure
             services.AddScoped<ICategoryRepository, CategoryRepository>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-            // Services 
-            services.AddScoped<IAuthService, AuthService>();
+            // Services         
+            services.AddScoped<IIdentityService, IdentityService>();
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IJwtTokenService, JwtTokenService>();
 

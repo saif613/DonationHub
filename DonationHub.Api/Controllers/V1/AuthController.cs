@@ -1,11 +1,17 @@
 ﻿using Asp.Versioning;
-using Azure.Core;
-using DonationHub.Application.Features.DTOs.Requests;
+using DonationHub.Api.Extensions;
+using DonationHub.Application.Features.Auth.Commands.ChangePassword;
+using DonationHub.Application.Features.Auth.Commands.Login;
+using DonationHub.Application.Features.Auth.Commands.Logout;
+using DonationHub.Application.Features.Auth.Commands.RefreshToken;
+using DonationHub.Application.Features.Auth.Commands.Register;
+using DonationHub.Application.Features.Auth.DTOs.Response;
+using DonationHub.Application.Features.Auth.Queries.GetCurrentUser;
 using DonationHub.Application.Features.DTOs.Responses;
-using DonationHub.Application.Interfaces.Services;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using TokenResponseDto = DonationHub.Application.Features.Auth.DTOs.Response.TokenResponseDto;
 
 namespace DonationHub.Api.Controllers.V1
 {
@@ -14,65 +20,97 @@ namespace DonationHub.Api.Controllers.V1
     [ApiController]
     public class AuthController : ControllerBase
     {
-        private readonly IAuthService _authService;
+        private readonly IMediator _mediator;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IMediator mediator)
         {
-            _authService = authService;
+            _mediator = mediator;
         }
 
         [AllowAnonymous]
         [HttpPost("register")]
-        [ProducesResponseType(typeof(TokenResponseDto), StatusCodes.Status201Created)]
-        public async Task<ActionResult> Register(RegisterRequestDto request, CancellationToken ct = default)
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+        public async Task<ActionResult> Register([FromBody] RegisterCommand command, CancellationToken ct = default)
         {
-            await _authService.RegisterAsync(request, ct);
-            return StatusCode(StatusCodes.Status201Created);
+            var result = await _mediator.Send(command, ct);
+
+            if (result.IsFailure)
+                return result.ToProblem(HttpContext);
+
+            return NoContent();
         }
 
         [AllowAnonymous]
         [HttpPost("login")]
         [ProducesResponseType(typeof(TokenResponseDto), StatusCodes.Status200OK)]
-        public async Task<ActionResult<TokenResponseDto>> Login(LoginRequestDto request, CancellationToken ct = default)
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<TokenResponseDto>> Login([FromBody] LoginCommand command, CancellationToken ct = default)
         {
-            var response = await _authService.LoginAsync(request, ct);
-            return Ok(response);
+            var result = await _mediator.Send(command, ct);
+
+            if (result.IsFailure)
+                return result.ToProblem(HttpContext);
+
+            return Ok(result.Value);
         }
 
         [AllowAnonymous]
         [HttpPost("refresh")]
         [ProducesResponseType(typeof(TokenResponseDto), StatusCodes.Status200OK)]
-        public async Task<ActionResult<TokenResponseDto>> Refresh(RefreshTokenRequestDto request, CancellationToken ct = default)
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+        public async Task<ActionResult<TokenResponseDto>> Refresh([FromBody] RefreshTokenCommand command, CancellationToken ct = default)
         {
-            var response = await _authService.RefreshAsync(request, ct);
-            return Ok(response);
+            var result = await _mediator.Send(command, ct);
+
+            if (result.IsFailure)
+                return result.ToProblem(HttpContext);
+
+            return Ok(result.Value);
         }
 
+        [Authorize]
         [HttpPost("logout")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        public async Task<ActionResult> Logout(LogoutRequestDto request, CancellationToken ct = default)
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult> Logout([FromBody] LogoutCommand command, CancellationToken ct = default)
         {
-            await _authService.LogoutAsync(request, ct);
+            var result = await _mediator.Send(command, ct);
+
+            if (result.IsFailure)
+                return result.ToProblem(HttpContext);
+
             return NoContent();
         }
 
         [Authorize]
         [HttpGet("me")]
         [ProducesResponseType(typeof(CurrentUserResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
         public async Task<ActionResult<CurrentUserResponseDto>> GetCurrentUser(CancellationToken ct = default)
         {
-            var response = await _authService.GetCurrentUserAsync(ct);
-            return Ok(response);
+            var result = await _mediator.Send(new GetCurrentUserQuery(), ct);
+
+            if (result.IsFailure)
+                return result.ToProblem(HttpContext);
+
+            return Ok(result.Value);
         }
 
         [Authorize]
         [HttpPut("Change-password")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<ActionResult> ChangePassword(ChangePasswordRequestDto request, CancellationToken ct = default)
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult> ChangePassword([FromBody] ChangePasswordCommand command, CancellationToken ct = default)
         {
-            await _authService.ChangePasswordAsync(request, ct);
+            var result = await _mediator.Send(command, ct);
+
+            if (result.IsFailure)
+                return result.ToProblem(HttpContext);
 
             return NoContent();
         }

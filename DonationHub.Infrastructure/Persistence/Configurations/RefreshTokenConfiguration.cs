@@ -14,9 +14,6 @@ public class RefreshTokenConfiguration: IEntityTypeConfiguration<RefreshToken>
     {
         builder.ToTable("RefreshTokens");
 
-        builder.Property(x => x.Id)
-             .ValueGeneratedOnAdd();
-
         builder.HasKey(r => r.Id);
 
         builder.Property(r => r.TokenHash)

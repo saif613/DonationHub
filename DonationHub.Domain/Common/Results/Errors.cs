@@ -14,9 +14,13 @@ namespace DonationHub.Domain.Common.Results
         public static class Auth
         {
             public static readonly Error InvalidCredentials = new("Auth.InvalidCredentials", "Invalid Email or Password", ErrorType.Unauthorized);
+            public static readonly Error Unauthorized = new("Auth.Unauthorized", "User Unauthorized", ErrorType.Unauthorized);
+            public static readonly Error UserNotFound = new("Auth.UserNotFound", "User does not exist", ErrorType.NotFound);
             public static readonly Error EmailAlreadyExists = new("Auth.EmailAlreadyExists", "Email already exists", ErrorType.Conflict);
             public static readonly Error RefreshTokenInvalid = new("Auth.RefreshTokenInvalid", "Refresh token is invalid ", ErrorType.Unauthorized);
             public static readonly Error AccountDeactivated = new("Auth.AccountDeactivated", "Account is deactivated ", ErrorType.Forbidden);
+            public static readonly Error FailedToAssignRole = new("Auth.FailedToAssignRole", "Failed to assign the requested role to the user", ErrorType.Failure);
+            public static readonly Error PasswordChangeFailed = new("Auth.PasswordChangeFailed", "Failed to change password", ErrorType.Validation);
         }
 
         public static class Category

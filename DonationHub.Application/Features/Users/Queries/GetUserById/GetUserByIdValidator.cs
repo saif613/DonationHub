@@ -1,0 +1,5 @@
+﻿namespace DonationHub.Application.Features.Users.Queries.GetUserById;
+
+public sealed class GetUserByIdValidator
+{
+}
