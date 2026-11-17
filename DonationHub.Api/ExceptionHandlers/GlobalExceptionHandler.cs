@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Diagnostics;
+﻿using DonationHub.Domain.Common.Results;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 
 namespace DonationHub.Api.ExceptionHandlers
@@ -13,8 +15,34 @@ namespace DonationHub.Api.ExceptionHandlers
             _logger = logger;
         }
         public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
-        {
+        {          
+
             var traceId = Activity.Current?.Id ?? httpContext.TraceIdentifier;
+
+            if (exception is DbUpdateConcurrencyException)
+            {
+                _logger.LogWarning(exception, "Concurrency conflict occurred. TraceId: {TraceId}", traceId);
+
+                var error = Errors.Campaign.ConcurrencyConflict;
+
+                var concurrencyProblemDetails = new ProblemDetails
+                {
+                    Type = "https://httpstatuses.io/409",
+                    Title = error.Message,
+                    Status = StatusCodes.Status409Conflict,
+                    Instance = httpContext.Request.Path
+                };
+
+                concurrencyProblemDetails.Extensions["code"] = error.Code;
+                concurrencyProblemDetails.Extensions["traceId"] = traceId;
+
+                httpContext.Response.StatusCode = StatusCodes.Status409Conflict;
+                httpContext.Response.ContentType = "application/problem+json";
+
+                await httpContext.Response.WriteAsJsonAsync(concurrencyProblemDetails, cancellationToken);
+
+                return true;
+            }
 
             _logger.LogError(exception, "Unhandled exception. TraceId: {TraceId}", traceId);
 
