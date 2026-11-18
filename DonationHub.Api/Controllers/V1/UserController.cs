@@ -57,9 +57,9 @@ namespace DonationHub.Api.Controllers.V1
         [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
-        public async Task<ActionResult<UserResponseDto>> ChangeLanguage([FromBody] string language, CancellationToken ct = default)
+        public async Task<ActionResult<UserResponseDto>> ChangeLanguage([FromBody] ChangeLanguageCommand command, CancellationToken ct = default)
         {
-            var result = await _mediator.Send(new ChangeLanguageCommand(language), ct);
+            var result = await _mediator.Send(command, ct);
 
             if (result.IsFailure)
                 return result.ToProblem(HttpContext);
