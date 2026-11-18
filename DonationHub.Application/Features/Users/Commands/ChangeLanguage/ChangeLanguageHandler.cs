@@ -28,7 +28,7 @@ public sealed class ChangeLanguageHandler:IRequestHandler<ChangeLanguageCommand,
 
     public async Task<Result<UserResponseDto>> Handle(ChangeLanguageCommand request, CancellationToken ct)
     {
-        var language = request.Language.Trim();
+        var language = request.Language.Trim().ToLower();
 
         var userId = _currentUser.UserId;
 

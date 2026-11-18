@@ -9,7 +9,7 @@ public sealed class ChangeLanguageValidator: AbstractValidator<ChangeLanguageCom
         RuleFor(x => x.Language)
             .NotEmpty()
             .WithMessage("Language is required")
-            .Must(language => language is "ar" or "en")
-            .WithMessage("Unsupported language");
+            .Must(language => string.Equals(language, "ar", StringComparison.OrdinalIgnoreCase) || string.Equals(language, "en", StringComparison.OrdinalIgnoreCase))
+            .WithMessage("Language must be either 'ar' or 'en'");            
     }
 }
