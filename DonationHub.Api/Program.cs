@@ -3,11 +3,23 @@ using DonationHub.Api.ExceptionHandlers;
 using DonationHub.Application;
 using DonationHub.Infrastructure;
 using DonationHub.Infrastructure.Persistence.Seeding;
+using Microsoft.AspNetCore.Localization;
 using Scalar.AspNetCore;
+using System.Globalization;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+var supportedCultures = new[]
+{
+    new CultureInfo("en"),
+    new CultureInfo("ar")
+};
+
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
 
 builder.Services
     .AddApiVersioning(options =>
@@ -34,7 +46,14 @@ builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
-using(var scope = app.Services.CreateScope())
+var localizationOptions = new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture("en"),
+    SupportedCultures = supportedCultures,
+    SupportedUICultures = supportedCultures
+};
+
+using (var scope = app.Services.CreateScope())
 {
     var seeder = scope.ServiceProvider.GetRequiredService<DbSeeder>();
 
@@ -46,6 +65,8 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
     app.MapScalarApiReference();
 }
+app.UseRequestLocalization(localizationOptions);
+
 app.UseExceptionHandler();
 
 app.UseHttpsRedirection();

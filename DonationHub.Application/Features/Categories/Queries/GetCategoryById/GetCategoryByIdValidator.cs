@@ -11,7 +11,8 @@ namespace DonationHub.Application.Features.Categories.Queries.GetCategoryById
         public GetCategoryByIdValidator()
         {
             RuleFor(x => x.Id)
-                .NotEmpty();
+               .NotEmpty()
+               .WithMessage("Id is required");
         }
     }
 }

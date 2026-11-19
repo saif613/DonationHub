@@ -37,6 +37,7 @@ namespace DonationHub.Api.Controllers.V1
 
             if (result.IsFailure)
                 return result.ToProblem(HttpContext);
+
             return Ok(result.Value);
         }
 
@@ -66,6 +67,7 @@ namespace DonationHub.Api.Controllers.V1
 
             if (result.IsFailure)
                 return result.ToProblem(HttpContext);
+
             return CreatedAtAction(nameof(GetById), new { id = result.Value.id, version = "1.0" }, result.Value);
         }
 
@@ -97,6 +99,7 @@ namespace DonationHub.Api.Controllers.V1
 
             if (result.IsFailure)
                 return result.ToProblem(HttpContext);
+
             return NoContent();
         }
 

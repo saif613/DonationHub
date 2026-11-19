@@ -112,9 +112,6 @@ public class Campaign : SoftDeletableEntity
         if (!CanAcceptDonation(utcNow))
             throw new InvalidOperationException("Campaign cannot accept donations.");
 
-        if (amount.Amount <= 0)
-            throw new ArgumentOutOfRangeException(nameof(amount));
-
         if (amount.Currency != GoalAmount.Currency)
             throw new InvalidOperationException("Donation currency must match campaign currency.");
 
@@ -135,6 +132,33 @@ public class Campaign : SoftDeletableEntity
             throw new InvalidOperationException("Campaign end date has not been reached.");
 
         Status = CampaignStatus.Expired;
+        MarkAsUpdated(utcNow, userId);
+    }
+
+    public void UpdateDetails(
+    string titleAr,
+    string titleEn,
+    string descriptionAr,
+    string descriptionEn,
+    Guid categoryId,
+    DateTime utcNow,
+    Guid? userId)
+    {
+        if (Status != CampaignStatus.Active)
+            throw new InvalidOperationException(
+                "Only active campaigns can be updated.");
+
+        HelperText.ValidateText(titleAr, titleEn, descriptionAr,       descriptionEn);
+
+        if (categoryId == Guid.Empty)
+            throw new ArgumentException("Category id is required.");
+
+        TitleAr = titleAr.Trim();
+        TitleEn = titleEn.Trim();
+        DescriptionAr = descriptionAr.Trim();
+        DescriptionEn = descriptionEn.Trim();
+        CategoryId = categoryId;
+
         MarkAsUpdated(utcNow, userId);
     }
 }

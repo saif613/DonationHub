@@ -34,9 +34,7 @@ namespace DonationHub.Infrastructure
             services.AddHttpContextAccessor();
 
             //Current Service
-            services.AddScoped<ICurrentUserService, CurrentUserService>();
-
-            
+            services.AddScoped<ICurrentUserService, CurrentUserService>();            
 
             // Interceptors
             services.AddScoped<SoftDeleteInterceptor>();
@@ -70,6 +68,7 @@ namespace DonationHub.Infrastructure
             services.AddScoped<IUserRepository, UserRepository>(); 
             services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
             services.AddScoped<ICategoryRepository, CategoryRepository>();
+            services.AddScoped<ICampaignRepository, CampaignRepository>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
 
             // Services         
