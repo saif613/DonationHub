@@ -41,6 +41,8 @@ namespace DonationHub.Domain.Common.Results
             public static readonly Error GoalBelowRaised = new("Campaign.GoalBelowRaised", "Goal amount cannot be lower than raised amount", ErrorType.UnprocessableEntity);
             public static readonly Error EndDateInPast = new("Campaign.EndDateInPast", "End date must be in the future", ErrorType.UnprocessableEntity);
             public static readonly Error ConcurrencyConflict = new("Campaign.ConcurrencyConflict", "Concurrent update conflict detected", ErrorType.Conflict);
+            public static readonly Error ArTitleAlreadyExists = new("Campaign.ArTitleAlreadyExists", "Arabic campaign title already exists", ErrorType.Conflict);
+            public static readonly Error EnTitleAlreadyExists = new("Campaign.EnTitleAlreadyExists", "English campaign title already exists", ErrorType.Conflict);
         }
 
         public static class Donation
