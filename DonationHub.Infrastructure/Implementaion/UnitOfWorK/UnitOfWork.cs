@@ -1,9 +1,11 @@
-﻿using DonationHub.Application.Interfaces.Repositories;
+﻿using DonationHub.Application.Exceptions;
+using DonationHub.Application.Interfaces.Repositories;
 using DonationHub.Application.Interfaces.UnitOfWork;
 using DonationHub.Domain.Common;
 using DonationHub.Domain.Entities;
 using DonationHub.Infrastructure.Implementaion.Repositories;
 using DonationHub.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -23,7 +25,18 @@ namespace DonationHub.Infrastructure.Implementaion.UnitOfWorK
             _context = context;  
         }
 
-        public Task<int> SaveChangesAsync(CancellationToken ct = default) => _context.SaveChangesAsync(ct);
+        public Task<int> SaveChangesAsync(CancellationToken ct = default) 
+        {
+            try
+            {
+                return _context.SaveChangesAsync(ct);
+            }
+
+            catch (DbUpdateConcurrencyException ex)
+            {
+                throw new ConcurrencyException(ex);
+            }
+        } 
         
 
         public async Task<T> ExcuteInTRansactionAsync<T>(Func<Task<T>> action, CancellationToken ct = default)
