@@ -1,4 +1,5 @@
-﻿using DonationHub.Application.Features.Campaigns.DTOs.Response;
+﻿using DonationHub.Application.Exceptions;
+using DonationHub.Application.Features.Campaigns.DTOs.Response;
 using DonationHub.Application.Interfaces.Repositories;
 using DonationHub.Application.Interfaces.Services;
 using DonationHub.Application.Interfaces.UnitOfWork;
@@ -79,7 +80,16 @@ namespace DonationHub.Application.Features.Campaigns.Commands.UpdateCampaign
 
             campaignExists.ChangeEndDate(request.EndDate, utcNow, userId);
 
-            await _unitOfWork.SaveChangesAsync(ct);
+            try
+            {
+                await _unitOfWork.SaveChangesAsync(ct);
+            }
+
+            catch (ConcurrencyException)
+            {
+                return Errors.Campaign.ConcurrencyConflict;
+            }
+
 
             var response = new UpdateResponseDto(campaignExists.Id, campaignExists.TitleAr, campaignExists.TitleEn, campaignExists.DescriptionAr,
             campaignExists.DescriptionEn,

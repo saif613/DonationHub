@@ -135,20 +135,12 @@ public class Campaign : SoftDeletableEntity
         MarkAsUpdated(utcNow, userId);
     }
 
-    public void UpdateDetails(
-    string titleAr,
-    string titleEn,
-    string descriptionAr,
-    string descriptionEn,
-    Guid categoryId,
-    DateTime utcNow,
-    Guid? userId)
+    public void UpdateDetails(string titleAr, string titleEn, string descriptionAr, string descriptionEn, Guid categoryId, DateTime utcNow, Guid? userId)
     {
         if (Status != CampaignStatus.Active)
-            throw new InvalidOperationException(
-                "Only active campaigns can be updated.");
+            throw new InvalidOperationException("Only active campaigns can be updated.");
 
-        HelperText.ValidateText(titleAr, titleEn, descriptionAr,       descriptionEn);
+        HelperText.ValidateText(titleAr, titleEn, descriptionAr, descriptionEn);
 
         if (categoryId == Guid.Empty)
             throw new ArgumentException("Category id is required.");
