@@ -1,4 +1,5 @@
 ﻿using DonationHub.Domain.Common;
+using DonationHub.Domain.Common.Results;
 using DonationHub.Domain.Enums;
 using DonationHub.Domain.ValueObjects;
 using System;
@@ -23,18 +24,12 @@ public class PaymentAttempt : SoftDeletableEntity
 
     private PaymentAttempt() { }
 
-    public static PaymentAttempt Create(Guid donationId, Money amount, DateTime utcNow, Guid? createdBy)
+    public static Result<PaymentAttempt> Create(Guid donationId, Money amount, DateTime utcNow, Guid? createdBy)
     {
         if (donationId == Guid.Empty)
-            throw new ArgumentException("Donation is required.");
+            return Errors.Payment.DonationisIdRequired;
 
-        if (amount is null)
-            throw new ArgumentNullException(nameof(amount));
-
-        if (amount.Amount <= 0)
-            throw new ArgumentOutOfRangeException(nameof(amount.Amount));
-
-        return new PaymentAttempt
+        var paymentAttemp = new PaymentAttempt
         {
             DonationId = donationId,
             Amount = amount,
@@ -42,57 +37,81 @@ public class PaymentAttempt : SoftDeletableEntity
             CreatedAt = utcNow,
             CreatedBy = createdBy
         };
+
+        return Result.Success(paymentAttemp);
     }
 
-    public void MarkSucceeded(string paymentIntentId, DateTime utcNow, Guid? UserId)
+    public Result MarkSucceeded(string paymentIntentId, DateTime utcNow, Guid? UserId)
     {
         if (string.IsNullOrWhiteSpace(paymentIntentId))
-            throw new ArgumentException("Payment intent ID is required.");
+            return Errors.Payment.PaymentIntentIdRequired;
 
-        IsCreated();
+        var stateResult = IsCreated();
+
+        if (stateResult.IsFailure)
+            return stateResult;
 
         StripePaymentIntentId = paymentIntentId.Trim();
         Status = PaymentAttemptStatus.Succeeded;
         MarkAsUpdated(utcNow, UserId);
+
+        return Result.Success();
     }
 
-    public void MarkFailed(string failureCode, DateTime utcNow, Guid? UserId)
+    public Result MarkFailed(string failureCode, DateTime utcNow, Guid? UserId)
     {
-        IsCreated();
+        var stateResult = IsCreated();
+
+        if (stateResult.IsFailure)
+            return stateResult;
 
         if (string.IsNullOrWhiteSpace(failureCode))
-            throw new ArgumentException("Failure code is required.");
+            return Errors.Payment.PaymentAttemptFailureCodeRequired;
 
         Status = PaymentAttemptStatus.Failed;
         FailureCode = failureCode.Trim();
         MarkAsUpdated(utcNow, UserId);
+
+        return Result.Success();
     }
 
-    public void MarkExpired(DateTime utcNow, Guid? UserId)
+    public Result MarkExpired(DateTime utcNow, Guid? UserId)
     {
-       IsCreated();
+        var stateResult = IsCreated();
+
+        if (stateResult.IsFailure)
+            return stateResult;
 
         Status = PaymentAttemptStatus.Expired;
         MarkAsUpdated(utcNow, UserId);
+
+        return Result.Success();
     }
 
-    private void IsCreated()
+    private Result IsCreated()
     {
         if (Status != PaymentAttemptStatus.Created)
-            throw new InvalidOperationException("Payment attempt is not in a created state.");
+            return Errors.Payment.PaymentAttemptInvalidState;
+
+        return Result.Success();
     }
 
-    public void SetStripeCheckoutSessionId(string sessionId, DateTime utcNow, Guid? UserId)
+    public Result SetStripeCheckoutSessionId(string sessionId, DateTime utcNow, Guid? UserId)
     {
-        IsCreated();
+        var stateResult = IsCreated();
+
+        if (stateResult.IsFailure)
+            return stateResult; 
 
         if (string.IsNullOrWhiteSpace(sessionId))
-            throw new ArgumentException("Stripe checkout session ID is required.");
+            return Errors.Payment.PaymentAttemptCheckoutSessionIdRequired;
 
         if (!string.IsNullOrWhiteSpace(StripeCheckoutSessionId))
-            throw new InvalidOperationException("Stripe checkout session ID has already been set.");
+            return Errors.Payment.PaymentAttemptCheckoutSessionAlreadySet;
 
         StripeCheckoutSessionId = sessionId.Trim();
         MarkAsUpdated(utcNow, UserId);
+
+        return Result.Success();
     }
 }

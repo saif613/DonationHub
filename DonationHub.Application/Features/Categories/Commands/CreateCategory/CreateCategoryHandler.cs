@@ -31,16 +31,18 @@ namespace DonationHub.Application.Features.Categories.Commands.CreateCategory
             if (await _categoryRepository.ExistsByNameArAsync(nameAr, ct:ct))
                 return Errors.Category.ArNameAlreadyExists;
 
-
             if (await _categoryRepository.ExistsByNameEnAsync(nameEn, ct:ct))
                 return Errors.Category.EnNameAlreadyExists;
 
             var category = CategoryEntity.Create(nameAr, nameEn, request.DescriptionAr!, request.DescriptionEn!, GetUtcNow(), _currentUser.UserId);
 
-            await _categoryRepository.AddAsync(category, ct);
+            if (category.IsFailure)
+                return category.Error;
+
+            await _categoryRepository.AddAsync(category.Value, ct);
             await _unitOfWork.SaveChangesAsync(ct);
 
-            var response = new CategoryResponseDto(category.Id, category.NameAr, category.NameEn, category.DescriptionAr, category.DescriptionEn);
+            var response = new CategoryResponseDto(category.Value.Id, category.Value.NameAr, category.Value.NameEn, category.Value.DescriptionAr, category.Value.DescriptionEn);
 
             return Result.Success(response);
         }

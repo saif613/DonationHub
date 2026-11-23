@@ -1,4 +1,5 @@
 ﻿using DonationHub.Domain.Common;
+using DonationHub.Domain.Common.Results;
 using DonationHub.Domain.Enums;
 using DonationHub.Domain.ValueObjects;
 using System;
@@ -20,18 +21,18 @@ public class Donation : SoftDeletableEntity
 
     private Donation() { }
 
-    public static Donation Create(Guid campaignId, Guid donorUserId, Money amount, DateTime utcNow, Guid? createdBy)
+    public static Result<Donation> Create(Guid campaignId, Guid donorUserId, Money amount, DateTime utcNow, Guid? createdBy)
     {
+        if (campaignId == Guid.Empty)
+            return Errors.Donation.CampaignIdRequired;
+
+        if (donorUserId == Guid.Empty)
+            return Errors.Donation.DonorUserIdRequired;
+
         if (amount is null)
-            throw new ArgumentNullException(nameof(amount));
+            return Errors.Donation.AmountRequired;
 
-        if (amount.Amount <= 0)
-            throw new ArgumentOutOfRangeException(nameof(amount));
-
-        if (campaignId == Guid.Empty || donorUserId == Guid.Empty)
-            throw new ArgumentException("Campaign and donor are required.");
-
-        return new Donation
+        var donation = new Donation
         {
             CampaignId = campaignId,
             DonorUserId = donorUserId,
@@ -40,12 +41,14 @@ public class Donation : SoftDeletableEntity
             CreatedAt = utcNow,
             CreatedBy = createdBy
         };
+
+        return Result.Success(donation); 
     }
 
-    public void MarkSucceeded(DateTime utcNow, int receiptNumber,Guid? userId, string? receiptFileName = null)
+    public Result MarkSucceeded(DateTime utcNow, int receiptNumber,Guid? userId, string? receiptFileName = null)
     {
         if (Status != DonationStatus.Pending)
-            throw new InvalidOperationException("Only pending donations can succeed.");
+            return Errors.Donation.InvalidState;
 
         Status = DonationStatus.Succeeded;
         CompletedAt = utcNow;
@@ -53,19 +56,23 @@ public class Donation : SoftDeletableEntity
         ReceiptFileName = receiptFileName;
 
         MarkAsUpdated(utcNow, userId);
+
+        return Result.Success();
     }
 
-    public void MarkFailed(string reason, DateTime utcNow, Guid? userId)
+    public Result MarkFailed(string reason, DateTime utcNow, Guid? userId)
     {
         if (Status != DonationStatus.Pending)
-            throw new InvalidOperationException("Only pending donations can fail.");
+            return Errors.Donation.InvalidState;
 
         if (string.IsNullOrWhiteSpace(reason))
-            throw new ArgumentException("Failure reason is required.");
+            return Errors.Donation.FailureReasonRequired;
 
         Status = DonationStatus.Failed;
         FailureReason = reason.Trim();
 
         MarkAsUpdated(utcNow, userId);
+
+        return Result.Success();
     }
 }

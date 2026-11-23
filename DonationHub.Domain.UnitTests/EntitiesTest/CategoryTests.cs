@@ -1,4 +1,5 @@
 ﻿using Donation.Tests.Common;
+using DonationHub.Domain.Common.Results;
 using DonationHub.Domain.Entities;
 using FluentAssertions;
 using System;
@@ -16,10 +17,12 @@ namespace Donation.Tests.EntitiesTest
             var userId = Guid.NewGuid();
 
             // Act
-            var category = Category.Create(" تبرعات طبية ", " Medical Donations ", " وصف عربي ", " English Description ", TestDateTime.Now, userId);
+            var result = Category.Create(" تبرعات طبية ", " Medical Donations ", " وصف عربي ", " English Description ", TestDateTime.Now, userId);
 
             // Assert
-            category.Should().NotBeNull();
+            result.IsSuccess.Should().BeTrue();
+
+            var category = result.Value;
 
             category.NameAr.Should().Be("تبرعات طبية");
             category.NameEn.Should().Be("Medical Donations");
@@ -36,13 +39,14 @@ namespace Donation.Tests.EntitiesTest
         [InlineData(" ")]
         [InlineData("  ")]
         [InlineData(null)]
-        public void Create_WithInvalidArabicName_ShouldThrowArgumentException(string? nameAr)
+        public void Create_WithInvalidArabicName_ShouldReturnFailure(string? nameAr)
         {
             // Arrange
-            var act = () => Category.Create(nameAr!, "Medical", "", "", TestDateTime.Now, null);
+            var result = Category.Create(nameAr!, "Medical", "", "", TestDateTime.Now, null);
 
             // Act and Assert
-            act.Should().Throw<ArgumentException>().WithMessage("Arabic Name is Required.");
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Category.NameArRequired);
         }
 
         [Theory]
@@ -50,37 +54,40 @@ namespace Donation.Tests.EntitiesTest
         [InlineData(" ")]
         [InlineData("  ")]
         [InlineData(null)]
-        public void Create_WithInvalidEnglishName_ShouldThrowArgumentException(string? nameEn)
+        public void Create_WithInvalidEnglishName_ShouldReturnFailure(string? nameEn)
         {
             // Arrange
-            var act = () => Category.Create("تبرعات طبية", nameEn!, "", "", TestDateTime.Now, null);
+            var result = Category.Create("تبرعات طبية", nameEn!, "", "", TestDateTime.Now, null);
 
             // Act and Assert
-            act.Should().Throw<ArgumentException>().WithMessage("English Name is Required");
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Category.NameEnRequired);
         }
 
         [Fact]
-        public void Create_WithArabicNameExceeding100Characters_ShouldThrowException()
+        public void Create_WithArabicNameExceeding100Characters_ShouldReturnFailure()
         {
             // Arrnge
             var nameAr = new string('ع', 101);
 
-            var act = () => Category.Create(nameAr, "Medical", "", "", TestDateTime.Now, null);
+            var result = Category.Create(nameAr, "Medical", "", "", TestDateTime.Now, null);
 
             // Act and Assert
-            act.Should().Throw<ArgumentException>().WithMessage("Arabic name cannot exceed 100 characters");
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Category.NameArTooLong);
         }
 
         [Fact]
-        public void Create_WithEnglishNameExceeding100Characters_ShouldThrowException()
+        public void Create_WithEnglishNameExceeding100Characters_ShouldReturnFailure()
         {
             // Arrnge
             var nameEn = new string('A', 101);
 
-            var act = () => Category.Create("تبرعات طبي", nameEn, "", "", TestDateTime.Now, null);
+            var result = Category.Create("تبرعات طبي", nameEn, "", "", TestDateTime.Now, null);
 
             // Act and Assert
-            act.Should().Throw<ArgumentException>().WithMessage("English name cannot exceed 100 characters");
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Category.NameEnTooLong);
         }
 
         [Fact]
@@ -92,11 +99,12 @@ namespace Donation.Tests.EntitiesTest
 
             // Act
 
-            var category = Category.Create(nameAr, nameEn, "", "", TestDateTime.Now, null);
+            var result = Category.Create(nameAr, nameEn, "", "", TestDateTime.Now, null);
 
             // Assert
-            category.NameAr.Should().HaveLength(100);
-            category.NameEn.Should().HaveLength(100);
+            result.IsSuccess.Should().BeTrue();
+            result.Value.NameAr.Should().HaveLength(100);
+            result.Value.NameEn.Should().HaveLength(100);
         }
 
         [Theory]
@@ -107,22 +115,27 @@ namespace Donation.Tests.EntitiesTest
         public void Create_WithEmptyDescriptions_ShouldSetThemToNull(string? description)
         {
             // Arrange and Act
-            var category = Category.Create("تبرعات طبية", "Medical", description!, description!, TestDateTime.Now, null);
+            var result = Category.Create("تبرعات طبية", "Medical", description!, description!, TestDateTime.Now, null);
 
             // Assert
-            category.DescriptionAr.Should().BeNull();
-            category.DescriptionEn.Should().BeNull();
+            result.IsSuccess.Should().BeTrue();
+
+            result.Value.DescriptionAr.Should().BeNull();
+            result.Value.DescriptionEn.Should().BeNull();
         }
 
         [Fact]
         public void Create_WithDescriptionsHavingSpaces_ShouldTrimThem()
         {
             // Arrange & Act
-            var category = Category.Create("تبرعات طبية", "Medical", " Arabic Description ", " English Description ", TestDateTime.Now, null);
+            var result = Category.Create("تبرعات طبية", "Medical", " Arabic Description ", " English Description ", TestDateTime.Now, null);
 
             // Assert
-            category.DescriptionAr.Should().Be("Arabic Description");
-            category.DescriptionEn.Should().Be("English Description");
+
+            result.IsSuccess.Should().BeTrue();
+
+            result.Value.DescriptionAr.Should().Be("Arabic Description");
+            result.Value.DescriptionEn.Should().Be("English Description");
         }
 
         [Fact]
@@ -131,12 +144,18 @@ namespace Donation.Tests.EntitiesTest
             // Arrange
             var userId = Guid.NewGuid();
 
-            var category = Category.Create("تبرعات طبية", "Medical", "Old Arabic Description", "old English Description", TestDateTime.Now, null);
+            var categoryResult = Category.Create("تبرعات طبية", "Medical", "Old Arabic Description", "old English Description", TestDateTime.Now, null);
+
+            categoryResult.IsSuccess.Should().BeTrue();
+
+            var category = categoryResult.Value;
 
             // Act
-            category.Update("تبرعات تعليمية", "Education", "New Arabic Description", "New English Description", TestDateTime.Later, userId);
+           var result = category.Update("تبرعات تعليمية", "Education", "New Arabic Description", "New English Description", TestDateTime.Later, userId);
 
             // Assert
+            result.IsSuccess.Should().BeTrue();
+
             category.NameAr.Should().Be("تبرعات تعليمية");
             category.NameEn.Should().Be("Education");
 
@@ -155,17 +174,18 @@ namespace Donation.Tests.EntitiesTest
         [InlineData(" ")]
         [InlineData("   ")]
         [InlineData(null)]
-        public void Update_WithInvalidArabicName_ShouldThrowException(string? nameAr)
+        public void Update_WithInvalidArabicName_ShouldReturnFailure(string? nameAr)
         {
             // Arrange 
             var userId = Guid.NewGuid();
 
-            var category = Category.Create("تبرعات طبية", "Medical", "Old Description", "", TestDateTime.Now, null);
+            var category = Category.Create("تبرعات طبية", "Medical", "Old Description", "", TestDateTime.Now, null).Value;
 
-            var act = () => category.Update(nameAr!, "Education","New Description", "", TestDateTime.Later, userId);
+            var result = category.Update(nameAr!, "Education","New Description", "", TestDateTime.Later, userId);
 
             // Act 
-            act.Should().Throw<ArgumentException>();
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Category.NameArRequired);
 
             // Assert
             category.NameAr.Should().Be("تبرعات طبية");
@@ -180,17 +200,18 @@ namespace Donation.Tests.EntitiesTest
         [InlineData(" ")]
         [InlineData("   ")]
         [InlineData(null)]
-        public void Update_WithInvalidEnglishName_ShouldThrowException(string? nameEn)
+        public void Update_WithInvalidEnglishName_ShouldReturnFailure(string? nameEn)
         {
             // Arrange 
             var userId = Guid.NewGuid();
 
-            var category = Category.Create("تبرعات طبية", "Medical", "Old Description", "", TestDateTime.Now, null);
+            var category = Category.Create("تبرعات طبية", "Medical", "Old Description", "", TestDateTime.Now, null).Value;
 
-            var act = () => category.Update("تبرعات تعليمية", nameEn!, "New Description", "", TestDateTime.Later, userId);
+            var result = category.Update("تبرعات تعليمية", nameEn!, "New Description", "", TestDateTime.Later, userId);
 
             // Act 
-            act.Should().Throw<ArgumentException>();
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Category.NameEnRequired);
 
             // Assert
             category.NameAr.Should().Be("تبرعات طبية");

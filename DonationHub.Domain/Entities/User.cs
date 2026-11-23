@@ -1,4 +1,5 @@
 ﻿using DonationHub.Domain.Common;
+using DonationHub.Domain.Common.Results;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -12,18 +13,18 @@ public class User : SoftDeletableEntity
     public bool IsActive { get; private set; }
     private User() { }
 
-    public static User Create(Guid id, string fullName, string preferredLanguage, DateTime utcNow, Guid? createdBy)
+    public static Result<User> Create(Guid id, string fullName, string preferredLanguage, DateTime utcNow, Guid? createdBy)
     {
         if (id == Guid.Empty)
-            throw new ArgumentException("User ID is required.");
+            return Errors.User.IdRequired;
 
         if (string.IsNullOrWhiteSpace(fullName))
-            throw new ArgumentException("Full name is required.");
+            return Errors.User.FullNameRequired;
 
         if (preferredLanguage is not ("en" or "ar"))
-            throw new ArgumentException("Preferred language must be en or ar.");
+            return Errors.User.InvalidLanguage;
 
-        return new User
+        var user = new User
         {
             Id = id,
             FullName = fullName.Trim(),
@@ -32,41 +33,53 @@ public class User : SoftDeletableEntity
             CreatedAt = utcNow,
             CreatedBy = createdBy
         };
+
+        return Result.Success(user);
     }
 
-    public void ChangePreferredLanguage(string language, DateTime utcNow, Guid? userId)
+    public Result ChangePreferredLanguage(string language, DateTime utcNow, Guid? userId)
     {
+        language = language?.Trim() ?? string.Empty;
+
         if (language is not ("en" or "ar"))
-            throw new ArgumentException("Preferred language must be en or ar.");
+            return Errors.User.InvalidLanguage;
 
         PreferredLanguage = language;
         MarkAsUpdated(utcNow, userId);
+
+        return Result.Success();
     }
 
-    public void Deactivate(Guid? userId, DateTime utcNow)
+    public Result Deactivate(Guid? userId, DateTime utcNow)
     {
         if (!IsActive)
-            throw new InvalidOperationException("User is already deactivated.");
+            return Errors.User.AlreadyDeactivated;
 
         IsActive = false;
         MarkAsUpdated(utcNow, userId);
+
+        return Result.Success();
     }
 
-    public void Activate(Guid? userId, DateTime utcNow)
+    public Result Activate(Guid? userId, DateTime utcNow)
     {
         if (IsActive)
-            throw new InvalidOperationException("User is already activated.");
+            return Errors.User.AlreadyActivated;
 
         IsActive = true;
         MarkAsUpdated(utcNow, userId);
+
+        return Result.Success();
     }
-    public void UpdateProfile(string fullName, DateTime utcNow, Guid? userId)
+    public Result UpdateProfile(string fullName, DateTime utcNow, Guid? userId)
     {
         if (string.IsNullOrWhiteSpace(fullName))
-            throw new AggregateException("Full name is required");
+            return Errors.User.FullNameRequired;
 
         FullName = fullName.Trim();
 
         MarkAsUpdated(utcNow, userId);
+
+        return Result.Success();
     }
 }

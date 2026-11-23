@@ -1,4 +1,5 @@
 ﻿using DonationHub.Application.Interfaces.UnitOfWork;
+using DonationHub.Domain.Common.Results;
 using DonationHub.Domain.Constants;
 using DonationHub.Domain.Entities;
 using DonationHub.Infrastructure.Identity;
@@ -125,14 +126,24 @@ public class DbSeeder
             ct: ct);
     }
 
-    private async Task EnsureUserAsync(string email, string password, string fullName, string language, string role, CancellationToken ct)
+    private async Task<Result> EnsureUserAsync(
+      string email,
+      string password,
+      string fullName,
+      string language,
+      string role,
+      CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
 
-        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        if (string.IsNullOrWhiteSpace(email) ||
+            string.IsNullOrWhiteSpace(password))
         {
-            _logger.LogWarning("Seed credentials for role {Role} are missing. Skipped.", role);
-            return;
+            _logger.LogWarning(
+                "Seed credentials for role {Role} are missing. Skipped.",
+                role);
+
+            return Result.Success();
         }
 
         var applicationUser = await _userManager.FindByEmailAsync(email);
@@ -161,12 +172,16 @@ public class DbSeeder
                     $"Failed to create user '{email}': {errors}");
             }
 
-            _logger.LogInformation("Created Identity user: {Email}", email);
+            _logger.LogInformation(
+                "Created Identity user: {Email}",
+                email);
         }
 
         if (!await _userManager.IsInRoleAsync(applicationUser, role))
         {
-            var roleResult = await _userManager.AddToRoleAsync(applicationUser, role);
+            var roleResult = await _userManager.AddToRoleAsync(
+                applicationUser,
+                role);
 
             if (!roleResult.Succeeded)
             {
@@ -179,86 +194,84 @@ public class DbSeeder
             }
         }
 
-     
         var domainUserExists = await _context.Set<User>()
             .AnyAsync(u => u.Id == applicationUser.Id, ct);
 
         if (!domainUserExists)
         {
-            var user = User.Create(
+            var userResult = User.Create(
                 applicationUser.Id,
                 fullName,
                 language,
                 GetUtcNow(),
                 null);
 
-            _context.Set<User>().Add(user);
+            if (userResult.IsFailure)
+                return userResult.Error;
+
+            _context.Set<User>().Add(userResult.Value);
 
             await _unitOfWork.SaveChangesAsync(ct);
 
-            _logger.LogInformation("Created Domain user: {Email}", email);
+            _logger.LogInformation(
+                "Created Domain user: {Email}",
+                email);
         }
 
-        _logger.LogInformation("Ensured user {Email} has role {Role}.", email, role);
+        _logger.LogInformation(
+            "Ensured user {Email} has role {Role}.",
+            email,
+            role);
+
+        return Result.Success();
     }
 
- 
-    private async Task SeedCategoriesAsync(CancellationToken ct)
+
+
+    private async Task<Result> SeedCategoriesAsync(CancellationToken ct)
     {
         var now = GetUtcNow();
 
         var categories = new[]
         {
-            Category.Create(
-                "الصحة",
-                "Health",
-                "دعم الخدمات والمبادرات الصحية",
-                "Supporting healthcare services and initiatives",
-                now,
-                null),
+        ("الصحة", "Health", "دعم الخدمات والمبادرات الصحية",
+            "Supporting healthcare services and initiatives"),
 
-            Category.Create(
-                "التعليم",
-                "Education",
-                "دعم التعليم وتوفير فرص التعلم",
-                "Supporting education and learning opportunities",
-                now,
-                null),
+        ("التعليم", "Education", "دعم التعليم وتوفير فرص التعلم",
+            "Supporting education and learning opportunities"),
 
-            Category.Create(
-                "الإغاثة",
-                "Relief",
-                "تقديم المساعدات الإنسانية والإغاثية",
-                "Providing humanitarian and emergency relief",
-                now,
-                null),
+        ("الإغاثة", "Relief", "تقديم المساعدات الإنسانية والإغاثية",
+            "Providing humanitarian and emergency relief"),
 
-            Category.Create(
-                "الأيتام",
-                "Orphans",
-                "دعم ورعاية الأطفال الأيتام",
-                "Supporting and caring for orphaned children",
-                now,
-                null),
+        ("الأيتام", "Orphans", "دعم ورعاية الأطفال الأيتام",
+            "Supporting and caring for orphaned children"),
 
-            Category.Create(
-                "البيئة",
-                "Environment",
-                "دعم حماية البيئة والاستدامة",
-                "Supporting environmental protection and sustainability",
-                now,
-                null)
-        };
+        ("البيئة", "Environment", "دعم حماية البيئة والاستدامة",
+            "Supporting environmental protection and sustainability")
+    };
 
-        foreach (var category in categories)
+        foreach (var item in categories)
         {
             ct.ThrowIfCancellationRequested();
 
             var exists = await _context.Set<Category>()
-                .AnyAsync(c => c.NameEn == category.NameEn, ct);
+                .AnyAsync(c => c.NameEn == item.Item2, ct);
 
             if (exists)
                 continue;
+
+            var categoryResult = Category.Create(
+                item.Item1,
+                item.Item2,
+                item.Item3,
+                item.Item4,
+                now,
+                null);
+
+            if (categoryResult.IsFailure)
+                return categoryResult.Error;
+
+            var category = categoryResult.Value;
 
             _context.Set<Category>().Add(category);
 
@@ -270,5 +283,8 @@ public class DbSeeder
         await _unitOfWork.SaveChangesAsync(ct);
 
         _logger.LogInformation("Categories seeding completed.");
+
+        return Result.Success();
     }
+
 }

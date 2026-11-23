@@ -10,7 +10,7 @@ namespace DonationHub.Application.Features.Categories.Queries.GetPagedCategories
         public GetPagedCategoriesValidator()
         {
             RuleFor(x => x.PageNumber)
-                .GreaterThan(1);
+                .GreaterThan(0);
 
             RuleFor(x => x.PageSize)
                 .InclusiveBetween(1, 100);

@@ -1,4 +1,5 @@
-﻿using DonationHub.Domain.ValueObjects;
+﻿using DonationHub.Domain.Common.Results;
+using DonationHub.Domain.ValueObjects;
 using FluentAssertions;
 using System;
 using System.Collections.Generic;
@@ -14,29 +15,29 @@ namespace Donation.Tests.ValueObjects
             var amount = 100;
             var currency = "EGP";
 
-            var money = Money.Create(amount, currency);
+            var result = Money.Create(amount, currency);
 
-            money.Should().NotBeNull();
-            money.Amount.Should().Be(amount);
-            money.Currency.Should().Be(currency);
+            result.IsSuccess.Should().BeTrue();
+            result.Value.Amount.Should().Be(amount);
+            result.Value.Currency.Should().Be(currency);
         }
 
         [Fact]
-        public void Create_WithNegativeAmount_ShouldThrowException()
+        public void Create_WithNegativeAmount_ShouldReturnInvalidAmountError()
         {
-            var act = () => Money.Create(-100m, "EGP");
+            var result = Money.Create(-100m, "EGP");
 
-            act.Should().Throw<ArgumentOutOfRangeException>()
-                .WithParameterName("amount");
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Money.InvalidAmount);
         }
 
         [Fact]
-        public void Create_WithZeroAmount_ShouldThrowException()
+        public void Create_WithZeroAmount_ShouldReturnInvalidAmountError()
         {
-            var act = () => Money.Create(0m, "EGP");
+            var result = Money.Create(0m, "EGP");
 
-            act.Should().Throw<ArgumentOutOfRangeException>()
-                .WithParameterName("amount");
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Money.InvalidAmount);
         }
 
         [Theory]
@@ -44,41 +45,40 @@ namespace Donation.Tests.ValueObjects
         [InlineData(" ")]
         [InlineData("  ")]
         [InlineData(null)]
-        public void Create_WithInvalidCurrency_ShouldThrowException(string? currency)
+        public void Create_WithInvalidCurrency_ShouldReturnCurrencyRequiredError(string? currency)
         {
-            var act = () => Money.Create(100m, currency!);
+            var result = Money.Create(100m, currency!);
 
-            act.Should().Throw<ArgumentException>()
-                .WithMessage("Currency is required.");
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Money.CurrencyRequired);
         }
 
         [Theory]
         [InlineData("US")]
         [InlineData("USDD")]
         [InlineData("E")]
-        public void Create_WithInvalidCurrencyLength_ShouldThrowException(string currency)
+        public void Create_WithInvalidCurrencyLength_ShouldReturnInvalidCurrencyError(string currency)
         {
-            var act = () => Money.Create(100m, currency);
+            var result = Money.Create(100m, currency);
 
-            act.Should().Throw<ArgumentException>()
-                .WithMessage("Currency must be a three-letter code.");
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Money.InvalidCurrency);
         }
 
         [Fact]
         public void Create_WithLowerCaseCurrency_ShouldNormalizedCurrency()
         {
-            var currency = "  egp  ";
+            var result = Money.Create(100m, "  egp  ");
 
-            var money = Money.Create(100m, currency);
-
-            money.Currency.Should().Be("EGP");
+            result.IsSuccess.Should().BeTrue();
+            result.Value.Currency.Should().Be("EGP");
         }
 
         [Fact]
         public void Equals_WithSameValues_ShouldReturnTrue()
         {
-            var first = Money.Create(100m, "EGP");
-            var second = Money.Create(100m, "EGP");
+            var first = Money.Create(100m, "EGP").Value;
+            var second = Money.Create(100m, "EGP").Value;
 
             first.Should().Be(second);
         }
@@ -95,8 +95,8 @@ namespace Donation.Tests.ValueObjects
         [Fact]
         public void Equals_WithDifferentCurrencies_ShouldReturnFalse()
         {
-            var first = Money.Create(100m, "EGP");
-            var second = Money.Create(100m, "USD");
+            var first = Money.Create(100m, "EGP").Value;
+            var second = Money.Create(100m, "USD").Value;
 
             first.Should().NotBe(second);
         }
@@ -104,8 +104,8 @@ namespace Donation.Tests.ValueObjects
         [Fact]
         public void GetHashCode_WithSameValues_ShouldReturnSameHashCode()
         {
-            var first = Money.Create(100m, "EGP");
-            var second = Money.Create(100m, "EGP");
+            var first = Money.Create(100m, "EGP").Value;
+            var second = Money.Create(100m, "EGP").Value;
 
             first.GetHashCode().Should().Be(second.GetHashCode());
         }

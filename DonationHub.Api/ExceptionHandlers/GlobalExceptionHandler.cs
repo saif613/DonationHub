@@ -1,4 +1,5 @@
-﻿using DonationHub.Domain.Common.Results;
+﻿using DonationHub.Application.Exceptions;
+using DonationHub.Domain.Common.Results;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -19,7 +20,7 @@ namespace DonationHub.Api.ExceptionHandlers
 
             var traceId = Activity.Current?.Id ?? httpContext.TraceIdentifier;
 
-            if (exception is DbUpdateConcurrencyException)
+            if (exception is ConcurrencyException)
             {
                 _logger.LogWarning(exception, "Concurrency conflict occurred. TraceId: {TraceId}", traceId);
 

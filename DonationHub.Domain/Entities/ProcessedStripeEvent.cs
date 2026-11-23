@@ -1,4 +1,5 @@
 ﻿using DonationHub.Domain.Common;
+using DonationHub.Domain.Common.Results;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -14,19 +15,21 @@ public class ProcessedStripeEvent
 
     private ProcessedStripeEvent() { }
 
-    public static ProcessedStripeEvent Create(string eventId, string type, DateTime processedAt)
+    public static Result<ProcessedStripeEvent> Create(string eventId, string type, DateTime processedAt)
     {
         if (string.IsNullOrWhiteSpace(eventId))
-            throw new ArgumentException("Event ID is required.", nameof(eventId));
+            return Errors.ProcessedStripeEvent.EventIdIsRequired;
 
         if (string.IsNullOrWhiteSpace(type))
-            throw new ArgumentException("Event type is required.", nameof(type));
+            return Errors.ProcessedStripeEvent.EventTypeIsRequired;
 
-        return new ProcessedStripeEvent
+        var processedStripeEvent = new ProcessedStripeEvent
         {
             EventId = eventId.Trim(),
             Type = type.Trim(),
             ProcessedAt = processedAt
         };
+
+        return Result.Success(processedStripeEvent);
     }
 }

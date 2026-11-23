@@ -1,4 +1,5 @@
 ﻿using DonationHub.Domain.Common;
+using DonationHub.Domain.Common.Results;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -8,18 +9,14 @@ namespace DonationHub.Domain.Entities;
 public class IdempotencyRecord : SoftDeletableEntity
 {
     public Guid UserId { get; private set; }
-
     public string RequestHash { get; private set; } = string.Empty;
-
     public int ResponseStatusCode { get; private set; }
-
     public string ResponseBody { get; private set; } = string.Empty;
-
     public DateTime ExpiresAt { get; private set; }
 
     private IdempotencyRecord() { }
 
-    public static IdempotencyRecord Create(
+    public static Result<IdempotencyRecord> Create(
         Guid userId,
         string requestHash,
         int responseStatusCode,
@@ -30,18 +27,18 @@ public class IdempotencyRecord : SoftDeletableEntity
     {
 
         if (userId == Guid.Empty)
-            throw new ArgumentException("User is required.");
+            return Errors.Idempotency.UserIdRequired;
 
         if (string.IsNullOrWhiteSpace(requestHash))
-            throw new ArgumentException("Request hash is required.");
+            return Errors.Idempotency.RequestHashRequired;
 
         if (expiresAt <= createdAt)
-            throw new ArgumentException("Expiration must be after creation.");
+            return Errors.Idempotency.InvalidExpiration;
 
         if (responseBody is null)
-            throw new ArgumentNullException(nameof(responseBody));
+            return Errors.Idempotency.ResponseBodyRequired;
 
-        return new IdempotencyRecord
+        var idempotencyRecord = new IdempotencyRecord
         {
             UserId = userId,
             RequestHash = requestHash,
@@ -51,6 +48,8 @@ public class IdempotencyRecord : SoftDeletableEntity
             ExpiresAt = expiresAt,
             CreatedBy = createdBy
         };
+
+        return Result.Success(idempotencyRecord);
     }
 
     public bool IsExpired(DateTime utcNow) => ExpiresAt <= utcNow;
