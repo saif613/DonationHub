@@ -22,7 +22,7 @@ namespace DonationHub.Application.UnitTests.Common.TestData
 
         public Guid CreatorId { get; } = Guid.NewGuid();
 
-        public Money GoalAmount { get; } = Money.Create(10000m, "EGP");
+        public Money GoalAmount { get; } = Money.Create(10000m, "EGP").Value;
         public byte[] RowVersion { get; } = [1, 2, 3, 4];
 
         public CampaignTestData()
@@ -43,7 +43,7 @@ namespace DonationHub.Application.UnitTests.Common.TestData
                 FutureDate,
                 CategoryId,
                 Now,
-                CreatorId);
+                CreatorId).Value;
         }
         public Category CreateCategory()
         {
@@ -53,7 +53,7 @@ namespace DonationHub.Application.UnitTests.Common.TestData
                 "وصف التصنيف",
                 "Category Description",
                 Now,
-                CreatorId);
+                CreatorId).Value;
         }
         public CreateCampaignCommand CreateCampaignCommand()
         {

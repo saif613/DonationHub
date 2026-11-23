@@ -1,4 +1,5 @@
 ﻿using DonationHub.Domain.Common;
+using DonationHub.Domain.Common.Results;
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
@@ -20,19 +21,19 @@ public class RefreshToken : SoftDeletableEntity
 
     private RefreshToken() { }
 
-    public static RefreshToken Create(Guid userId, string tokenHash, DateTime createdAt, DateTime expiresAt, Guid? createdBy)
+    public static Result<RefreshToken> Create(Guid userId, string tokenHash, DateTime createdAt, DateTime expiresAt, Guid? createdBy)
     {
 
         if (userId == Guid.Empty)
-            throw new ArgumentException("User is required.");
+            return Errors.RefreshToken.UserIdRequired;
 
         if (string.IsNullOrWhiteSpace(tokenHash))
-            throw new ArgumentException("Token hash is required.");
+            return Errors.RefreshToken.TokenHashRequired;
 
         if (expiresAt <= createdAt)
-            throw new ArgumentException("Expiration must be after creation.");
+            return Errors.RefreshToken.InvalidExpiration;
 
-        return new RefreshToken
+       var refreshToken =  new RefreshToken
         {
             Id = Guid.NewGuid(),
             UserId = userId,
@@ -41,34 +42,40 @@ public class RefreshToken : SoftDeletableEntity
             ExpiresAt = expiresAt,
             CreatedBy = createdBy
         };
+
+        return Result.Success(refreshToken); 
     }
     public static Expression<Func<RefreshToken, bool>> IsActiveExpr(DateTime utcNow) => rt => rt.RevokedAt == null && rt.ExpiresAt > utcNow;
 
     public bool IsActive(DateTime utcNow) => RevokedAt is null && ExpiresAt > utcNow;
 
-    public void Revoke(DateTime utcNow, Guid? userId)
+    public Result Revoke(DateTime utcNow, Guid? userId)
     {
         if (RevokedAt is not null)
-            throw new InvalidOperationException("Token is already revoked.");
+            return Errors.RefreshToken.AlreadyRevoked;
 
         if (ExpiresAt <= utcNow)
-            throw new InvalidOperationException("Token has expired.");
+            return Errors.RefreshToken.Expired;
 
         RevokedAt = utcNow;
         MarkAsUpdated(utcNow, userId);
+
+        return Result.Success();
     }
 
-    public void ReplaceWith(Guid newTokenId, DateTime utcNow, Guid? userId)
+    public Result ReplaceWith(Guid newTokenId, DateTime utcNow, Guid? userId)
     {
         if (newTokenId == Guid.Empty || newTokenId == Id)
-            throw new ArgumentException("Replacement token ID is invalid.");
+            return Errors.RefreshToken.InvalidReplacementTokenId;
 
         if (!IsActive(utcNow))
-            throw new InvalidOperationException("Token is not active.");
+            return Errors.RefreshToken.NotActive;
 
         RevokedAt = utcNow;
         ReplacedByTokenId = newTokenId;
         MarkAsUpdated(utcNow, userId);
+
+        return Result.Success();
     }
 
 }

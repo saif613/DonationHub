@@ -1,4 +1,5 @@
 ﻿using DonationHub.Domain.Common;
+using DonationHub.Domain.Common.Results;
 using DonationHub.Domain.Helper;
 using System;
 using System.Collections.Generic;
@@ -15,12 +16,15 @@ public class Category : SoftDeletableEntity
 
     private Category() { }
 
-    public static Category Create(string nameAr, string nameEn, string descriptionAr, string descriptionEn, DateTime utcNow, Guid? createdBy)
+    public static Result<Category> Create(string nameAr, string nameEn, string descriptionAr, string descriptionEn, DateTime utcNow, Guid? createdBy)
     {
 
-        ValidateNames(nameAr, nameEn);
+        var validationResult = ValidateNames(nameAr, nameEn);
 
-        return new Category
+        if (validationResult.IsFailure)
+            return validationResult.Error;
+
+        var category = new Category
         {
             NameAr = nameAr.Trim(),
             NameEn = nameEn.Trim(),
@@ -29,11 +33,16 @@ public class Category : SoftDeletableEntity
             CreatedAt = utcNow,
             CreatedBy = createdBy
         };
+
+        return Result.Success(category);
     }
 
-    public void Update(string nameAr, string nameEn, string descriptionAr, string descriptionEn, DateTime utcNow, Guid? userID)
+    public Result Update(string nameAr, string nameEn, string descriptionAr, string descriptionEn, DateTime utcNow, Guid? userID)
     {
-        ValidateNames(nameAr, nameEn);
+        var validationResult = ValidateNames(nameAr, nameEn);
+
+        if (validationResult.IsFailure)
+            return validationResult.Error;
 
         NameAr = nameAr.Trim();
         NameEn = nameEn.Trim();
@@ -41,21 +50,25 @@ public class Category : SoftDeletableEntity
         DescriptionEn = string.IsNullOrWhiteSpace(descriptionEn) ? null : descriptionEn.Trim();
 
         MarkAsUpdated(utcNow, userID);
+
+        return Result.Success();
     }  
     
-    private static void ValidateNames(string nameAr, string
+    private static Result ValidateNames(string nameAr, string
         nameEn)
     {
         if (string.IsNullOrWhiteSpace(nameAr))
-            throw new ArgumentException("Arabic Name is Required.");
+            return Errors.Category.NameArRequired;
 
         if (string.IsNullOrWhiteSpace(nameEn))
-            throw new ArgumentException("English Name is Required");
+            return Errors.Category.NameEnRequired;
 
         if (nameAr.Trim().Length > 100)
-            throw new ArgumentException("Arabic name cannot exceed 100 characters");
+            return Errors.Category.NameArTooLong;
 
         if (nameEn.Trim().Length > 100)
-            throw new ArgumentException("English name cannot exceed 100 characters");
+            return Errors.Category.NameEnTooLong;
+
+        return Result.Success();
     }
 }

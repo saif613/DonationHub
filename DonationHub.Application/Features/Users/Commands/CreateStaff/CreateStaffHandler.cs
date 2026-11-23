@@ -63,13 +63,16 @@ public sealed class CreateStaffHandler : IRequestHandler<CreateStaffCommand, Res
 
             var now = GetUtcNow();
 
-            var user = User.Create(userId, request.FullName, request.PreferredLanguage, now, _currentUser.UserId);
+            var userResult = User.Create(userId, request.FullName, request.PreferredLanguage, now, _currentUser.UserId);
 
-            await _userRepository.AddAsync(user, ct);
+            if (userResult.IsFailure)
+                return userResult.Error;
+
+            await _userRepository.AddAsync(userResult.Value, ct);
 
             await _unitOfWork.SaveChangesAsync(ct);
 
-            var response = new CreateStaffResponseDto(user.Id, request.Email, user.FullName, role, temporaryPassword);
+            var response = new CreateStaffResponseDto(userResult.Value.Id, request.Email, userResult.Value.FullName, role, temporaryPassword);
 
             return Result.Success(response);
         }, ct);

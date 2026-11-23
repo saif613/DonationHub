@@ -60,14 +60,20 @@ namespace DonationHub.Application.Features.Campaigns.Commands.CreateCampaign
             if (await _campaignRepository.ExistsByTitleEnAsync(titleEn, ct: ct))
                 return Errors.Campaign.EnTitleAlreadyExists;
 
-            var money = Money.Create(request.Amount, request.Currency);
+            var money = Domain.ValueObjects.Money.Create(request.Amount, request.Currency);
 
-            var campaign = Campaign.Create(titleAr, titleEn, request.DescriptionAr, request.DescriptionEn, money, request.EndDate, request.CategoryId, utcNow, userId);
+            if (money.IsFailure)
+                return money.Error;
 
-            await _campaignRepository.AddAsync(campaign, ct);
+            var campaign = Campaign.Create(titleAr, titleEn, request.DescriptionAr, request.DescriptionEn, money.Value, request.EndDate, request.CategoryId, utcNow, userId);
+
+            if (campaign.IsFailure)
+                return campaign.Error;
+
+            await _campaignRepository.AddAsync(campaign.Value, ct);
             await _unitOfWork.SaveChangesAsync(ct);
 
-            var response = new CampaignResponseDto(campaign.Id , campaign.TitleAr, campaign.TitleEn, campaign.DescriptionAr, campaign.DescriptionEn, campaign.GoalAmount.Amount, campaign.GoalAmount.Currency, campaign.EndDate, campaign.CategoryId);
+            var response = new CampaignResponseDto(campaign.Value.Id , campaign.Value.TitleAr, campaign.Value.TitleEn, campaign.Value.DescriptionAr, campaign.Value.DescriptionEn, campaign.Value.GoalAmount.Amount, campaign.Value.GoalAmount.Currency, campaign.Value.EndDate, campaign.Value.CategoryId);
 
             return Result.Success(response);
         }

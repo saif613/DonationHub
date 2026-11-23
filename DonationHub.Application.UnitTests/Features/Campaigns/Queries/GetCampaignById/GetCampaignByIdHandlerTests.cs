@@ -21,7 +21,12 @@ namespace DonationHub.Application.UnitTests.Features.Campaigns.Queries.GetCampai
             var data = new CampaignTestData();
             var campaign = data.CreateCampaign();
 
-            campaign.RegisterSuccessfulDonation(Money.Create(raisedAmount, "EGP"), data.Now, data.CreatorId);
+            var donationResult = campaign.RegisterSuccessfulDonation(
+                Money.Create(raisedAmount, "EGP").Value,
+                data.Now,
+                data.CreatorId);
+
+            donationResult.IsSuccess.Should().BeTrue();
 
             var campaignRepo = new Mock<ICampaignRepository>();
 

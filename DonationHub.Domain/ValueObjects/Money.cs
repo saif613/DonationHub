@@ -1,4 +1,5 @@
 ﻿using DonationHub.Domain.Common;
+using DonationHub.Domain.Common.Results;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -16,19 +17,18 @@ public sealed class Money : ValueObject
         Currency = currency;
     }
 
-    public static Money Create(decimal amount, string currency)
+    public static Result<Money> Create(decimal amount, string currency)
     {
-
         if (amount <= 0)
-            throw new ArgumentOutOfRangeException(nameof(amount));
+            return Errors.Money.InvalidAmount;
 
         if (string.IsNullOrWhiteSpace(currency))
-            throw new ArgumentException("Currency is required.");
+            return Errors.Money.CurrencyRequired;
 
         currency = currency.Trim().ToUpperInvariant();
 
         if (currency.Length != 3)
-            throw new ArgumentException("Currency must be a three-letter code.");
+            return Errors.Money.InvalidCurrency;
 
         return new Money(amount, currency);
     }

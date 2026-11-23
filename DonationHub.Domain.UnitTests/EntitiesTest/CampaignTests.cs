@@ -1,25 +1,54 @@
-﻿using Donation.Tests.Common;
+﻿
+using Donation.Tests.Common;
+using DonationHub.Domain.Common.Results;
 using DonationHub.Domain.Entities;
 using DonationHub.Domain.Enums;
 using DonationHub.Domain.ValueObjects;
 using FluentAssertions;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Donation.Tests.EntitiesTest
 {
     public class CampaignTests
     {
-        private Campaign CreateCampaign()
-        {
-            return Campaign.Create("حملة علاج المرضى", "Patients Treatment", "وصف الحملة", "Campaign Description", GoalAmount, FutureDate, CategoryId, Now,   CreatorId);
-        }
         private static readonly Guid CategoryId = Guid.NewGuid();
         private static readonly Guid CreatorId = Guid.NewGuid();
-        private static readonly Money GoalAmount = Money.Create(10000m, "EGP");
+
         private static readonly DateTime Now = TestDateTime.Now;
         private static readonly DateTime FutureDate = Now.AddDays(30);
+
+        private static Money CreateMoney(decimal amount, string currency)
+        {
+            var result = Money.Create(amount, currency);
+
+            result.IsSuccess.Should().BeTrue();
+
+            return result.Value;
+        }
+
+        private static Campaign CreateCampaign()
+        {
+            var result = Campaign.Create(
+                "حملة علاج المرضى",
+                "Patients Treatment",
+                "وصف الحملة",
+                "Campaign Description",
+                CreateMoney(10000m, "EGP"),
+                FutureDate,
+                CategoryId,
+                Now,
+                CreatorId);
+
+            result.IsSuccess.Should().BeTrue();
+
+            return result.Value;
+        }
+
+        private static void ShouldSucceed(Result result)
+        {
+            result.IsSuccess.Should().BeTrue();
+        }
+
+        // Create Tests
 
         [Fact]
         public void Create_WithValidData_ShouldCreateCampaign()
@@ -29,16 +58,27 @@ namespace Donation.Tests.EntitiesTest
             var descriptionAr = "وصف الحملة باللغة العربية";
             var descriptionEn = "Campaign description in English";
 
-            var campaign = Campaign.Create(titleAr, titleEn, descriptionAr, descriptionEn, GoalAmount, FutureDate, CategoryId, Now, CreatorId);
+            var result = Campaign.Create(
+                titleAr,
+                titleEn,
+                descriptionAr,
+                descriptionEn,
+                CreateMoney(10000m, "EGP"),
+                FutureDate,
+                CategoryId,
+                Now,
+                CreatorId);
 
-            campaign.Should().NotBeNull();
+            result.IsSuccess.Should().BeTrue();
+
+            var campaign = result.Value;
 
             campaign.TitleAr.Should().Be(titleAr);
             campaign.TitleEn.Should().Be(titleEn);
             campaign.DescriptionAr.Should().Be(descriptionAr);
             campaign.DescriptionEn.Should().Be(descriptionEn);
 
-            campaign.GoalAmount.Should().Be(GoalAmount);
+            campaign.GoalAmount.Should().Be(CreateMoney(10000m, "EGP"));
             campaign.RaisedAmount.Should().Be(0);
 
             campaign.EndDate.Should().Be(FutureDate);
@@ -51,82 +91,196 @@ namespace Donation.Tests.EntitiesTest
         }
 
         [Theory]
-        [InlineData("", "English Title", "Arabic Description", "English Description", "Arabic title is required.")]
-
-        [InlineData("Arabic Title", " ", "Arabic Description", "English Description", "English title is required.")]
-
-        [InlineData("Arabic Title", "English Title", "", "English Description", "Arabic description is required.")]
-
-        [InlineData("Arabic Title", "English Title", "Arabic Description", " ", "English description is required.")]
-        public void Create_WithInvalidText_ShouldThrowArgumentException(string titleAr, string titleEn, string descriptionAr, string descriptionEn, string expectedMessage)
+        [InlineData("", "English Title", "Arabic Description", "English Description")]
+        public void Create_WithInvalidArabicTitle_ShouldReturnFailure(
+            string titleAr,
+            string titleEn,
+            string descriptionAr,
+            string descriptionEn)
         {
-            var act = () => Campaign.Create(titleAr, titleEn, descriptionAr, descriptionEn, GoalAmount, FutureDate, CategoryId, Now, CreatorId);
+            var result = Campaign.Create(
+                titleAr,
+                titleEn,
+                descriptionAr,
+                descriptionEn,
+                CreateMoney(10000m, "EGP"),
+                FutureDate,
+                CategoryId,
+                Now,
+                CreatorId);
 
-            act.Should().Throw<ArgumentException>()
-                .WithMessage(expectedMessage);
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Campaign.TitleArRequired);
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData(" ")]
+        public void Create_WithInvalidEnglishTitle_ShouldReturnFailure(string titleEn)
+        {
+            var result = Campaign.Create(
+                "Arabic Title",
+                titleEn,
+                "Arabic Description",
+                "English Description",
+                CreateMoney(10000m, "EGP"),
+                FutureDate,
+                CategoryId,
+                Now,
+                CreatorId);
+
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Campaign.TitleEnRequired);
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData(" ")]
+        public void Create_WithInvalidArabicDescription_ShouldReturnFailure(string descriptionAr)
+        {
+            var result = Campaign.Create(
+                "Arabic Title",
+                "English Title",
+                descriptionAr,
+                "English Description",
+                CreateMoney(10000m, "EGP"),
+                FutureDate,
+                CategoryId,
+                Now,
+                CreatorId);
+
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Campaign.DescriptionArRequired);
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData(" ")]
+        public void Create_WithInvalidEnglishDescription_ShouldReturnFailure(string descriptionEn)
+        {
+            var result = Campaign.Create(
+                "Arabic Title",
+                "English Title",
+                "Arabic Description",
+                descriptionEn,
+                CreateMoney(10000m, "EGP"),
+                FutureDate,
+                CategoryId,
+                Now,
+                CreatorId);
+
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Campaign.DescriptionEnRequired);
         }
 
         [Fact]
-        public void Create_WithNullGoalAmount_ShouldThrowArgumentNullException()
+        public void Create_WithNullGoalAmount_ShouldReturnFailure()
         {
-            var act = () => Campaign.Create("عنوان عربي", "English Title", "وصف عربي", "English Description", null!, FutureDate, CategoryId, Now, CreatorId);
+            var result = Campaign.Create(
+                "عنوان عربي",
+                "English Title",
+                "وصف عربي",
+                "English Description",
+                null!,
+                FutureDate,
+                CategoryId,
+                Now,
+                CreatorId);
 
-            act.Should().Throw<ArgumentNullException>()
-                .WithParameterName("goalAmount");
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Campaign.GoalAmountRequired);
         }
 
         [Theory]
         [InlineData(-1)]
         [InlineData(0)]
-        public void Create_WithInvalidEndDate_ShouldThrowArgumentException(int days)
+        public void Create_WithInvalidEndDate_ShouldReturnFailure(int days)
         {
             var endDate = Now.AddDays(days);
 
-            var act = () => Campaign.Create("عنوان عربي", "English Title", "وصف عربي", "English Description", GoalAmount, endDate, CategoryId, Now, CreatorId);
+            var result = Campaign.Create(
+                "عنوان عربي",
+                "English Title",
+                "وصف عربي",
+                "English Description",
+                CreateMoney(10000m, "EGP"),
+                endDate,
+                CategoryId,
+                Now,
+                CreatorId);
 
-            act.Should().Throw<ArgumentException>()
-                .WithMessage("End date must be in the future.");
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Campaign.EndDateInPast);
         }
 
         [Fact]
-        public void Create_WithEmptyCategoryId_ShouldThrowArgumentException()
+        public void Create_WithEmptyCategoryId_ShouldReturnFailure()
         {
-            var act = () => Campaign.Create("عنوان عربي", "English Title", "وصف عربي", "English Description", GoalAmount, FutureDate, Guid.Empty, Now, CreatorId);
+            var result = Campaign.Create(
+                "عنوان عربي",
+                "English Title",
+                "وصف عربي",
+                "English Description",
+                CreateMoney(10000m, "EGP"),
+                FutureDate,
+                Guid.Empty,
+                Now,
+                CreatorId);
 
-            act.Should().Throw<ArgumentException>()
-                .WithMessage("Category id is required.");
-
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Campaign.CategoryIdRequired);
         }
 
         [Fact]
-        public void Create_WithNullCreator_ShouldThrowArgumentException()
+        public void Create_WithNullCreator_ShouldReturnFailure()
         {
-            var act = () => Campaign.Create("عنوان عربي", "English Title", "وصف عربي", "English Description", GoalAmount, FutureDate, CategoryId, Now, null);
+            var result = Campaign.Create(
+                "عنوان عربي",
+                "English Title",
+                "وصف عربي",
+                "English Description",
+                CreateMoney(10000m, "EGP"),
+                FutureDate,
+                CategoryId,
+                Now,
+                null);
 
-            act.Should().Throw<ArgumentException>()
-                .WithMessage("Creator id is required.");
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Campaign.CreatorIdRequired);
         }
 
-
         [Fact]
-        public void Create_WithEmptyCreator_ShouldThrowArgumentException()
+        public void Create_WithEmptyCreator_ShouldReturnFailure()
         {
-            var act = () => Campaign.Create("عنوان عربي", "English Title", "وصف عربي", "English Description", GoalAmount, FutureDate, CategoryId, Now, Guid.Empty);
+            var result = Campaign.Create(
+                "عنوان عربي",
+                "English Title",
+                "وصف عربي",
+                "English Description",
+                CreateMoney(10000m, "EGP"),
+                FutureDate,
+                CategoryId,
+                Now,
+                Guid.Empty);
 
-            act.Should().Throw<ArgumentException>()
-                .WithMessage("Creator id is required.");
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Campaign.CreatorIdRequired);
         }
 
+        // ChangeGoal Tests
+
         [Fact]
-        public void ChangeGoal_WithValidDate_ShouldUpdateGoalAmount()
+        public void ChangeGoal_WithValidData_ShouldUpdateGoalAmount()
         {
             var campaign = CreateCampaign();
-            var newGoal = Money.Create(2000m, "EGP");
+            var newGoal = CreateMoney(20000m, "EGP");
 
             var updatedAt = Now.AddDays(1);
             var updatedBy = Guid.NewGuid();
 
-            campaign.ChangeGoal(newGoal, updatedAt, updatedBy);
+            var result = campaign.ChangeGoal(newGoal, updatedAt, updatedBy);
+
+            result.IsSuccess.Should().BeTrue();
 
             campaign.GoalAmount.Should().Be(newGoal);
             campaign.UpdatedAt.Should().Be(updatedAt);
@@ -134,56 +288,85 @@ namespace Donation.Tests.EntitiesTest
         }
 
         [Fact]
-        public void ChangeGoal_WithNullGoalAmount_ShouldThrowArgumentNullException()
+        public void ChangeGoal_WithNullGoalAmount_ShouldReturnFailure()
         {
             var campaign = CreateCampaign();
 
-            var act = () => campaign.ChangeGoal(null!, Now, CreatorId);
+            var result = campaign.ChangeGoal(null!, Now, CreatorId);
 
-            act.Should().Throw<ArgumentNullException>()
-                .WithParameterName("newGoalAmount");
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Campaign.GoalAmountRequired);
         }
 
         [Fact]
-        public void ChangeGoal_WithCompletedCampaign_ShouldThrowInvalidOperationException()
+        public void ChangeGoal_WithCompletedCampaign_ShouldReturnFailure()
         {
             var campaign = CreateCampaign();
 
-            campaign.RegisterSuccessfulDonation(Money.Create(10000m, "EGP"), Now.AddDays(1), CreatorId);
+            ShouldSucceed(campaign.RegisterSuccessfulDonation(
+                CreateMoney(10000m, "EGP"),
+                Now.AddDays(1),
+                CreatorId));
 
-            var act = () => campaign.ChangeGoal(Money.Create(20000m, "EGP"), Now.AddDays(2), CreatorId);
+            var result = campaign.ChangeGoal(
+                CreateMoney(20000m, "EGP"),
+                Now.AddDays(2),
+                CreatorId);
 
-            act.Should().Throw<InvalidOperationException>()
-                .WithMessage("Only active campaigns can change their goal.");
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Campaign.NotActive);
         }
 
         [Fact]
-        public void ChangeGoal_WithDifferentCurrency_ShouldThrowInvalidOperationException()
+        public void ChangeGoal_WithDifferentCurrency_ShouldReturnFailure()
         {
             var campaign = CreateCampaign();
-            var newGoal = Money.Create(20000m, "USD");
 
+            var result = campaign.ChangeGoal(
+                CreateMoney(20000m, "USD"),
+                Now.AddDays(1),
+                CreatorId);
 
-            var act = () => campaign.ChangeGoal(newGoal, Now.AddDays(1), CreatorId);
-
-            act.Should().Throw<InvalidOperationException>()
-                .WithMessage("Campaign currency cannot be changed.");
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Campaign.CurrencyMismatch);
         }
 
         [Fact]
-        public void ChangeGoal_WithAmountLessThanRaisedAmount_ShouldThrowArgumentOutOfRangeException()
+        public void ChangeGoal_WithAmountLessThanRaisedAmount_ShouldReturnFailure()
         {
             var campaign = CreateCampaign();
 
-            campaign.RegisterSuccessfulDonation(Money.Create(5000m, "EGP"), Now.AddDays(1), CreatorId);
+            ShouldSucceed(campaign.RegisterSuccessfulDonation(
+                CreateMoney(5000m, "EGP"),
+                Now.AddDays(1),
+                CreatorId));
 
-            var newGoal = Money.Create(4000m, "EGP");
+            var result = campaign.ChangeGoal(
+                CreateMoney(4000m, "EGP"),
+                Now.AddDays(2),
+                CreatorId);
 
-            var act = () => campaign.ChangeGoal(newGoal, Now.AddDays(2), CreatorId);
-
-            act.Should().Throw<ArgumentOutOfRangeException>()
-                .WithParameterName("newGoalAmount");
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Campaign.GoalBelowRaisedAmount);
         }
+
+        [Fact]
+        public void ChangeGoal_WithExpiredCampaign_ShouldReturnFailure()
+        {
+            var campaign = CreateCampaign();
+
+            ShouldSucceed(campaign.Expire(FutureDate, CreatorId));
+
+            var result = campaign.ChangeGoal(
+                CreateMoney(20000m, "EGP"),
+                FutureDate.AddDays(1),
+                CreatorId);
+
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Campaign.NotActive);
+        }
+
+        // ChangeEndDate Tests
 
         [Fact]
         public void ChangeEndDate_WithValidDate_ShouldUpdateEndDate()
@@ -194,40 +377,49 @@ namespace Donation.Tests.EntitiesTest
             var updatedAt = Now.AddDays(1);
             var updatedBy = Guid.NewGuid();
 
-            campaign.ChangeEndDate(newEndDate, updatedAt, updatedBy);
+            var result = campaign.ChangeEndDate(newEndDate, updatedAt, updatedBy);
+
+            result.IsSuccess.Should().BeTrue();
 
             campaign.EndDate.Should().Be(newEndDate);
             campaign.UpdatedAt.Should().Be(updatedAt);
             campaign.UpdatedBy.Should().Be(updatedBy);
         }
+
         [Fact]
-        public void ChangeEndDate_WithCompletedCampaign_ShouldThrowInvalidOperationException()
+        public void ChangeEndDate_WithCompletedCampaign_ShouldReturnFailure()
         {
             var campaign = CreateCampaign();
 
-            campaign.RegisterSuccessfulDonation(Money.Create(10000m, "EGP"), Now.AddDays(1), CreatorId);
+            ShouldSucceed(campaign.RegisterSuccessfulDonation(
+                CreateMoney(10000m, "EGP"),
+                Now.AddDays(1),
+                CreatorId));
 
-            var newEndDate = Now.AddDays(60);
+            var result = campaign.ChangeEndDate(
+                Now.AddDays(60),
+                Now.AddDays(2),
+                CreatorId);
 
-            var act = () => campaign.ChangeEndDate(newEndDate, Now.AddDays(2), CreatorId);
-
-            act.Should().Throw<InvalidOperationException>()
-                .WithMessage("Only active campaigns can change their end date.");
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Campaign.NotActive);
         }
 
         [Theory]
         [InlineData(-1)]
         [InlineData(0)]
-        public void ChangeEndDate_WithInvalidDate_ShouldThrowArgumentException(int days)
+        public void ChangeEndDate_WithInvalidDate_ShouldReturnFailure(int days)
         {
             var campaign = CreateCampaign();
             var invalidDate = Now.AddDays(days);
 
-            var act = () => campaign.ChangeEndDate(invalidDate, Now, CreatorId);
+            var result = campaign.ChangeEndDate(invalidDate, Now, CreatorId);
 
-            act.Should().Throw<ArgumentException>()
-                .WithMessage("End date must be in the future.");
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Campaign.EndDateInPast);
         }
+
+        // CanAcceptDonation Tests
 
         [Fact]
         public void CanAcceptDonation_WithActiveCampaign_ShouldReturnTrue()
@@ -240,10 +432,14 @@ namespace Donation.Tests.EntitiesTest
         }
 
         [Fact]
-        public void CanAcceptDonation_WithCampaignCampaign_ShouldReturnFalse()
+        public void CanAcceptDonation_WithCompletedCampaign_ShouldReturnFalse()
         {
             var campaign = CreateCampaign();
-            campaign.RegisterSuccessfulDonation(Money.Create(10000m, "EGP"), Now.AddDays(1), CreatorId);
+
+            ShouldSucceed(campaign.RegisterSuccessfulDonation(
+                CreateMoney(10000m, "EGP"),
+                Now.AddDays(1),
+                CreatorId));
 
             var result = campaign.CanAcceptDonation(Now.AddDays(2));
 
@@ -255,7 +451,8 @@ namespace Donation.Tests.EntitiesTest
         {
             var campaign = CreateCampaign();
 
-            campaign.Expire(FutureDate, CreatorId);
+            ShouldSucceed(campaign.Expire(FutureDate, CreatorId));
+
             var result = campaign.CanAcceptDonation(FutureDate);
 
             result.Should().BeFalse();
@@ -264,38 +461,29 @@ namespace Donation.Tests.EntitiesTest
         [Theory]
         [InlineData(0)]
         [InlineData(1)]
-        public void CanAcceptDonation_WithReachedEndDat_ShouldReturnFalse(int days)
+        public void CanAcceptDonation_WithReachedEndDate_ShouldReturnFalse(int days)
         {
             var campaign = CreateCampaign();
             var currentDate = FutureDate.AddDays(days);
 
-            
             var result = campaign.CanAcceptDonation(currentDate);
 
             result.Should().BeFalse();
         }
 
+        // UpdateDetails Tests
+
         [Fact]
-        public void ChangeGoal_WithExpiredCampaign_ShouldThrowInvalidOperationException()
+        public void UpdateDetails_WithCompletedCampaign_ShouldReturnFailure()
         {
             var campaign = CreateCampaign();
-            campaign.Expire(FutureDate, CreatorId);
 
-            var newGoal = Money.Create(20000m, "EGP");
+            ShouldSucceed(campaign.RegisterSuccessfulDonation(
+                CreateMoney(10000m, "EGP"),
+                Now.AddDays(1),
+                CreatorId));
 
-            var act = () => campaign.ChangeGoal(newGoal, FutureDate.AddDays(1), CreatorId);
-
-            act.Should().Throw<InvalidOperationException>().WithMessage("Only active campaigns can change their goal."); 
-        }
-
-        [Fact]
-        public void UpdateDetails_WithCompletedCampaign_ShouldThrowInvalidOperationException()
-        {
-            var campaign = CreateCampaign();           
-
-            campaign.RegisterSuccessfulDonation(Money.Create(10000m, "EGP"), Now.AddDays(1), CreatorId);
-
-            var act = () => campaign.UpdateDetails(
+            var result = campaign.UpdateDetails(
                 "عنوان جديد",
                 "New Title",
                 "وصف جديد",
@@ -304,59 +492,60 @@ namespace Donation.Tests.EntitiesTest
                 Now.AddDays(2),
                 CreatorId);
 
-            act.Should().Throw<InvalidOperationException>().WithMessage("Only active campaigns can be updated.");
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Campaign.NotActive);
         }
 
         [Fact]
-        public void UpdateDetails_WithExpiredCampaign_ShouldThrowInvalidOperationException()
+        public void UpdateDetails_WithExpiredCampaign_ShouldReturnFailure()
         {
             var campaign = CreateCampaign();
-            campaign.Expire(FutureDate, CreatorId);
 
-            var act = () => campaign.UpdateDetails(
-               "عنوان جديد",
-               "New Title",
-               "وصف جديد",
-               "New Description",
-               CategoryId,
-               Now.AddDays(2),
-               CreatorId);
+            ShouldSucceed(campaign.Expire(FutureDate, CreatorId));
 
-            act.Should().Throw<InvalidOperationException>().WithMessage("Only active campaigns can be updated.");
+            var result = campaign.UpdateDetails(
+                "عنوان جديد",
+                "New Title",
+                "وصف جديد",
+                "New Description",
+                CategoryId,
+                FutureDate.AddDays(1),
+                CreatorId);
+
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Campaign.NotActive);
+        }
+
+        // RegisterSuccessfulDonation Tests
+
+        [Fact]
+        public void RegisterSuccessfulDonation_WithDifferentCurrency_ShouldReturnFailure()
+        {
+            var campaign = CreateCampaign();
+
+            var result = campaign.RegisterSuccessfulDonation(
+                CreateMoney(100m, "USD"),
+                Now,
+                CreatorId);
+
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Campaign.CurrencyMismatch);
         }
 
         [Fact]
-        public void RegisterSuccessfulDonation_WithDifferentCurrency_ShouldThrowInvalidOperationException()
+        public void RegisterSuccessfulDonation_WithExpiredCampaign_ShouldReturnFailure()
         {
             var campaign = CreateCampaign();
 
-            var donation = Money.Create(100m, "USD");
+            ShouldSucceed(campaign.Expire(FutureDate, CreatorId));
 
-            var act = () => campaign.RegisterSuccessfulDonation(donation, Now, CreatorId);
+            var result = campaign.RegisterSuccessfulDonation(
+                CreateMoney(100m, "EGP"),
+                FutureDate.AddDays(1),
+                CreatorId);
 
-            act.Should().Throw<InvalidOperationException>().WithMessage("Donation currency must match campaign currency.");
-        }
-
-        [Fact]
-        public void RegisterSuccessfulDonation_WithExpiredCampaign_ShouldThrowInvalidOperationException()
-        {
-            var campaign = CreateCampaign();
-
-            campaign.Expire(FutureDate, CreatorId);
-
-            var act = () => campaign.RegisterSuccessfulDonation(Money.Create(100m, "EGP"), FutureDate.AddDays(1), CreatorId);
-
-            act.Should().Throw<InvalidOperationException>().WithMessage("Campaign cannot accept donations.");
-        }
-
-        [Fact]
-        public void Expire_BeforeEndDate_ShouldThrowInvalidOperationException()
-        {
-            var campaign = CreateCampaign();
-
-            var act = () => campaign.Expire(Now.AddDays(1), CreatorId);
-
-            act.Should().Throw<InvalidOperationException>().WithMessage("Campaign end date has not been reached.");
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Campaign.CannotAcceptDonation);
         }
 
         [Fact]
@@ -364,12 +553,28 @@ namespace Donation.Tests.EntitiesTest
         {
             var campaign = CreateCampaign();
 
-            var donation = Money.Create(10000m, "EGP");
+            var result = campaign.RegisterSuccessfulDonation(
+                CreateMoney(10000m, "EGP"),
+                Now.AddDays(1),
+                CreatorId);
 
-            campaign.RegisterSuccessfulDonation(donation, Now.AddDays(1), CreatorId);
+            result.IsSuccess.Should().BeTrue();
 
             campaign.RaisedAmount.Should().Be(10000m);
             campaign.Status.Should().Be(CampaignStatus.Completed);
+        }
+
+        // Expire Tests
+
+        [Fact]
+        public void Expire_BeforeEndDate_ShouldReturnFailure()
+        {
+            var campaign = CreateCampaign();
+
+            var result = campaign.Expire(Now.AddDays(1), CreatorId);
+
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().Be(Errors.Campaign.EndDateNotReached);
         }
     }
 }

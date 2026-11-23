@@ -65,21 +65,45 @@ namespace DonationHub.Application.Features.Campaigns.Commands.UpdateCampaign
                 return Errors.Campaign.EnTitleAlreadyExists;
 
             if (request.Amount < campaignExists.RaisedAmount)
-                return Errors.Campaign.GoalBelowRaised;
+                return Errors.Campaign.GoalBelowRaisedAmount;
 
             if (campaignExists.Status != CampaignStatus.Active)
                 return Errors.Campaign.NotActive;
 
-            var newMoney = Money.Create(request.Amount, request.Currency);
+            var newMoney = Domain.ValueObjects.Money.Create(request.Amount, request.Currency);
+
+            if (newMoney.IsFailure)
+                return newMoney.Error;
 
             _campaignRepository.SetOriginalRowVersion(campaignExists, request.RowVersion);
 
-            campaignExists.UpdateDetails(titleAr, titleEn, request.DescriptionAr, request.DescriptionEn, request.CategoryId, utcNow, userId);
+            var updateDetailsResult = campaignExists.UpdateDetails(
+                titleAr,
+                titleEn, 
+                request.DescriptionAr,
+                request.DescriptionEn,
+                request.CategoryId,
+                utcNow,
+                userId);
 
-            campaignExists.ChangeGoal(newMoney, utcNow, userId);
+            if (updateDetailsResult.IsFailure)
+                return updateDetailsResult.Error;
 
-            campaignExists.ChangeEndDate(request.EndDate, utcNow, userId);
+            var changeGoalResult = campaignExists.ChangeGoal(
+                newMoney.Value,
+                utcNow,
+                userId);
 
+            if (changeGoalResult.IsFailure)
+                return changeGoalResult.Error;
+
+            var changeEndDateResult = campaignExists.ChangeEndDate(
+                request.EndDate,
+                utcNow,
+                userId);
+
+            if (changeEndDateResult.IsFailure)
+                return changeEndDateResult.Error;
             try
             {
                 await _unitOfWork.SaveChangesAsync(ct);

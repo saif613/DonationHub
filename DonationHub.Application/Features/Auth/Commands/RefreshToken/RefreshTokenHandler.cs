@@ -76,15 +76,22 @@ public sealed class RefreshTokenHandler : IRequestHandler<RefreshTokenCommand, R
             utcNow.AddDays(_jwtOptions.Value.RefreshTokenExpiryDays),
             userId
         );
+
+        if (newRefreshTokenEntity.IsFailure)
+            return newRefreshTokenEntity.Error;
+
         return await _unitOfWork.ExcuteInTRansactionAsync(async () =>
         {
-            oldRefreshToken.ReplaceWith(newRefreshTokenEntity.Id, utcNow, userId);
+            var replaceResult = oldRefreshToken.ReplaceWith(newRefreshTokenEntity.Value.Id, utcNow, userId);
 
-            await _refreshTokenRepository.AddAsync(newRefreshTokenEntity, ct);
+            if (replaceResult.IsFailure)
+                return replaceResult.Error;
+
+            await _refreshTokenRepository.AddAsync(newRefreshTokenEntity.Value, ct);
 
             await _unitOfWork.SaveChangesAsync(ct);
 
-            var response = new TokenResponseDto(accessToken, newRefreshToken, accessTokenExpiresAt, newRefreshTokenEntity.ExpiresAt);
+            var response = new TokenResponseDto(accessToken, newRefreshToken, accessTokenExpiresAt, newRefreshTokenEntity.Value.ExpiresAt);
 
             return Result.Success(response);
         }, ct);            

@@ -75,11 +75,14 @@ public sealed class LoginHandler : IRequestHandler<LoginCommand, Result<TokenRes
             null
         );
 
-        await _refreshTokenRepository.AddAsync(refreshTokenEntity, ct);
+        if (refreshTokenEntity.IsFailure)
+            return refreshTokenEntity.Error;
+
+        await _refreshTokenRepository.AddAsync(refreshTokenEntity.Value, ct);
 
         await _unitOfWork.SaveChangesAsync(ct);
 
-        var response = new TokenResponseDto(accessToken, refreshToken, accessTokenExpiresAt, refreshTokenEntity.ExpiresAt);
+        var response = new TokenResponseDto(accessToken, refreshToken, accessTokenExpiresAt, refreshTokenEntity.Value.ExpiresAt);
         return Result.Success(response);
     }
 }

@@ -1,4 +1,5 @@
 ﻿using DonationHub.Domain.Common;
+using DonationHub.Domain.Common.Results;
 using DonationHub.Domain.Enums;
 using DonationHub.Domain.Helper;
 using DonationHub.Domain.ValueObjects;
@@ -24,7 +25,7 @@ public class Campaign : SoftDeletableEntity
 
     private Campaign() { }
 
-    public static Campaign Create(
+    public static Result<Campaign> Create(
         string titleAr,
         string titleEn,
         string descriptionAr,
@@ -36,24 +37,24 @@ public class Campaign : SoftDeletableEntity
         Guid? createdBy)
     {
 
-        HelperText.ValidateText(titleAr, titleEn, descriptionAr, descriptionEn);
+        var textResult = HelperText.ValidateText(titleAr, titleEn, descriptionAr, descriptionEn);
+
+        if (textResult.IsFailure)
+            return textResult.Error;
 
         if (goalAmount is null)
-            throw new ArgumentNullException(nameof(goalAmount));
-
-        if (goalAmount.Amount <= 0)
-            throw new ArgumentOutOfRangeException(nameof(goalAmount));
+            return Errors.Campaign.GoalAmountRequired;
 
         if (endDate <= utcNow)
-            throw new ArgumentException("End date must be in the future.");
+            return Errors.Campaign.EndDateInPast;
 
         if (categoryId == Guid.Empty)
-            throw new ArgumentException("Category id is required.");
+            return Errors.Campaign.CategoryIdRequired;
 
         if (createdBy is null || createdBy == Guid.Empty)
-            throw new ArgumentException("Creator id is required.");
+            return Errors.Campaign.CreatorIdRequired;
 
-        return new Campaign
+        var campaign = new Campaign
         {
             TitleAr = titleAr.Trim(),
             TitleEn = titleEn.Trim(),
@@ -67,53 +68,56 @@ public class Campaign : SoftDeletableEntity
             CreatedBy = createdBy,
             Status = CampaignStatus.Active
         };
+
+        return Result.Success(campaign);
     }
 
-    public void ChangeGoal(Money newGoalAmount, DateTime utcNow, Guid? userId)
+    public Result ChangeGoal(Money newGoalAmount, DateTime utcNow, Guid? userId)
     {
         if (newGoalAmount is null)
-            throw new ArgumentNullException(nameof(newGoalAmount));
+            return Errors.Campaign.GoalAmountRequired;
 
         if (Status != CampaignStatus.Active)
-            throw new InvalidOperationException("Only active campaigns can change their goal.");
-  
-        if (newGoalAmount.Amount <= 0)
-            throw new ArgumentOutOfRangeException(nameof(newGoalAmount));
+            return Errors.Campaign.NotActive;
 
         if (newGoalAmount.Currency != GoalAmount.Currency)
-            throw new InvalidOperationException("Campaign currency cannot be changed.");
+            return Errors.Campaign.CurrencyMismatch;
 
         if (newGoalAmount.Amount < RaisedAmount)
-            throw new ArgumentOutOfRangeException(nameof(newGoalAmount));
+            return Errors.Campaign.GoalBelowRaisedAmount;
 
         GoalAmount = newGoalAmount;
         MarkAsUpdated(utcNow, userId);
+
+        return Result.Success();
     }
 
-    public void ChangeEndDate(DateTime newEndDate, DateTime utcNow, Guid? userId)
+    public Result ChangeEndDate(DateTime newEndDate, DateTime utcNow, Guid? userId)
     {
         if (Status != CampaignStatus.Active)
-            throw new InvalidOperationException("Only active campaigns can change their end date.");
+            return Errors.Campaign.NotActive;
 
         if (newEndDate <= utcNow)
-            throw new ArgumentException("End date must be in the future.");
+            return Errors.Campaign.EndDateInPast;
 
         EndDate = newEndDate;
         MarkAsUpdated(utcNow, userId);
+
+        return Result.Success();
     }
 
     public bool CanAcceptDonation(DateTime utcNow) => !IsDeleted && Status == CampaignStatus.Active && EndDate > utcNow;
 
-    public void RegisterSuccessfulDonation(Money amount, DateTime utcNow, Guid? userId)
+    public Result RegisterSuccessfulDonation(Money amount, DateTime utcNow, Guid? userId)
     {
         if (amount is null)
-            throw new ArgumentNullException(nameof(amount));
+            return Errors.Campaign.GoalAmountRequired;
 
         if (!CanAcceptDonation(utcNow))
-            throw new InvalidOperationException("Campaign cannot accept donations.");
+            return Errors.Campaign.CannotAcceptDonation;
 
         if (amount.Currency != GoalAmount.Currency)
-            throw new InvalidOperationException("Donation currency must match campaign currency.");
+            return Errors.Campaign.CurrencyMismatch;
 
         RaisedAmount += amount.Amount;
 
@@ -121,29 +125,36 @@ public class Campaign : SoftDeletableEntity
             Status = CampaignStatus.Completed;
 
         MarkAsUpdated(utcNow, userId);
+
+        return Result.Success();
     }
 
-    public void Expire(DateTime utcNow, Guid? userId)
+    public Result Expire(DateTime utcNow, Guid? userId)
     {
         if (Status != CampaignStatus.Active)
-            throw new InvalidOperationException("Only active campaigns can expire.");
+            return Errors.Campaign.NotActive;
 
         if (EndDate > utcNow)
-            throw new InvalidOperationException("Campaign end date has not been reached.");
+            return Errors.Campaign.EndDateNotReached;
 
         Status = CampaignStatus.Expired;
         MarkAsUpdated(utcNow, userId);
+
+        return Result.Success();
     }
 
-    public void UpdateDetails(string titleAr, string titleEn, string descriptionAr, string descriptionEn, Guid categoryId, DateTime utcNow, Guid? userId)
+    public Result UpdateDetails(string titleAr, string titleEn, string descriptionAr, string descriptionEn, Guid categoryId, DateTime utcNow, Guid? userId)
     {
         if (Status != CampaignStatus.Active)
-            throw new InvalidOperationException("Only active campaigns can be updated.");
+            return Errors.Campaign.NotActive;
 
-        HelperText.ValidateText(titleAr, titleEn, descriptionAr, descriptionEn);
+        var textResult = HelperText.ValidateText(titleAr, titleEn, descriptionAr, descriptionEn);
+
+        if (textResult.IsFailure)
+            return textResult.Error;
 
         if (categoryId == Guid.Empty)
-            throw new ArgumentException("Category id is required.");
+            return Errors.Campaign.CategoryIdRequired;
 
         TitleAr = titleAr.Trim();
         TitleEn = titleEn.Trim();
@@ -152,6 +163,8 @@ public class Campaign : SoftDeletableEntity
         CategoryId = categoryId;
 
         MarkAsUpdated(utcNow, userId);
+
+        return Result.Success();
     }
 }
 

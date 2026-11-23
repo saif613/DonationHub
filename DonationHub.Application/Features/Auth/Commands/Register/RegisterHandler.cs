@@ -43,9 +43,12 @@ public sealed class RegisterHandler : IRequestHandler<RegisterCommand, Result>
             if (roleResult.IsFailure)
                 return roleResult;
           
-            var user = User.Create(newId, request.FullName, request.PreferredLanguage, now, null);
+            var userResult = User.Create(newId, request.FullName, request.PreferredLanguage, now, null);
 
-            await _userRepository.AddAsync(user, ct);
+            if (userResult.IsFailure)
+                return userResult.Error;
+
+            await _userRepository.AddAsync(userResult.Value, ct);
             await _unitOfWork.SaveChangesAsync(ct);
             return Result.Success();
 
