@@ -42,5 +42,6 @@ namespace DonationHub.Infrastructure.Implementaion.Repositories
                 .OrderByDescending(c => c.CreatedAt)
                 .ToListAsync(ct);
 
+        public async Task<bool> IsCampaignActive(Guid id, CancellationToken ct = default) => await _dbSet.AnyAsync(c => c.Id == id && c.Status == CampaignStatus.Active);
     }
 }

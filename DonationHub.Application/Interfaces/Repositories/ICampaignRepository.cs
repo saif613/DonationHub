@@ -14,5 +14,6 @@ namespace DonationHub.Application.Interfaces.Repositories
         Task<bool> HardDeleteAsync(Guid id, CancellationToken ct = default);
         Task<IReadOnlyList<Campaign>> GetAllActiveAsync(CancellationToken ct = default);
         Task<IReadOnlyList<Campaign>> GetAllCompletedAsync(CancellationToken ct = default);
+        Task<bool> IsCampaignActive(Guid id, CancellationToken ct = default); 
     }
 }
