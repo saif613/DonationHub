@@ -1,4 +1,5 @@
 ﻿using DonationHub.Domain.Common;
+using DonationHub.Domain.Common.Events;
 using DonationHub.Domain.Common.Results;
 using DonationHub.Domain.Enums;
 using DonationHub.Domain.Helper;
@@ -122,7 +123,10 @@ public class Campaign : SoftDeletableEntity
         RaisedAmount += amount.Amount;
 
         if (RaisedAmount >= GoalAmount.Amount)
+        {
             Status = CampaignStatus.Completed;
+            Raise(new CampaignCompletedEvent(Id, RaisedAmount));
+        }           
 
         MarkAsUpdated(utcNow, userId);
 
