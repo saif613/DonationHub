@@ -1,5 +1,6 @@
 ﻿using Asp.Versioning;
 using DonationHub.Api.Extensions;
+using DonationHub.Application.Features.Campaigns.Commands.CampaignCancelled;
 using DonationHub.Application.Features.Campaigns.Commands.CreateCampaign;
 using DonationHub.Application.Features.Campaigns.Commands.DeleteCampaign;
 using DonationHub.Application.Features.Campaigns.Commands.UpdateCampaign;
@@ -127,6 +128,17 @@ namespace DonationHub.Api.Controllers.V1
 
             return Ok(result.Value);
         }
+
+        [HttpPatch("{id:guid}/cancel")]
+        public async Task<ActionResult> Cancel(Guid id, CancellationToken ct)
+        {
+            var result = await _mediator.Send(new CampaignCancelledCommand(id), ct);
+
+            if (result.IsFailure)
+                return result.ToProblem(HttpContext);
+
+            return NoContent();
+        } 
 
     }
 }

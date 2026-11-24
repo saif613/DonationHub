@@ -166,5 +166,16 @@ public class Campaign : SoftDeletableEntity
 
         return Result.Success();
     }
+
+    public Result Cancelled(DateTime utcNow, Guid? userId)
+    {
+        if (Status != CampaignStatus.Active)
+            return Errors.Campaign.NotActive;
+
+        Status = CampaignStatus.Cancelled;
+        MarkAsUpdated(utcNow, userId);
+
+        return Result.Success();
+    }
 }
 

@@ -69,7 +69,6 @@ namespace DonationHub.Application.UnitTests.Features.Campaigns.Commands.CreateCa
             campaignRepo.Setup(x => x.ExistsByTitleEnAsync(It.IsAny<string>(), null, It.IsAny<CancellationToken>()))
                .ReturnsAsync(false);
 
-
             var handler = new CreateCampaignHandler(unitOfWork.Object, campaignRepo.Object, data.TimeProvider, currentUser.Object, categoryRepo.Object);
 
             var command = data.CreateCampaignCommand();

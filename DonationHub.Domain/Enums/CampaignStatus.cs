@@ -8,5 +8,6 @@ public enum CampaignStatus
 {
     Active,
     Completed,
-    Expired
+    Expired,
+    Cancelled
 }
