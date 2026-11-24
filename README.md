@@ -25,43 +25,34 @@ dotnet tool update --global dotnet-ef
 
 ## 2. Project Structure
 
+The solution is organized into six projects, following Clean Architecture principles and separating application code from automated tests.
+
 ```text
 DonationHub/
+│
 ├── DonationHub.Domain/
-│   ├── Common/
-│   ├── Constants/
-│   ├── Entities/
-│   ├── Enums/
-│   ├── Helper/
-│   └── ValueObjects/
 │
 ├── DonationHub.Application/
-│   ├── DTOs/
-│   ├── Exceptions/
-│   ├── Features/
-│   └── Interfaces/
 │
 ├── DonationHub.Infrastructure/
-│   ├── Identity/
-│   ├── Implementaion/        (Repositories, Services, UnitOfWork)
-│   ├── Migrations/
-│   ├── Options/
-│   └── Persistence/          (DbContext, Configurations, Interceptors, Seeding)
 │
 ├── DonationHub.Api/
-│   ├── Controllers/
-│   ├── ExceptionHandlers/
-│   └── Program.cs
 │
-└── Donation.Tests/           (unit tests)
+├── DonationHub.Domain.UnitTests/
+│
+├── DonationHub.Application.UnitTests/
+│
+└── DonationHub.slnx
 ```
 
 ### Architecture Responsibilities
 
-- **Domain:** entities, value objects, business rules.
-- **Application:** DTOs, service/repository abstractions, application services.
-- **Infrastructure:** EF Core, repositories, Identity, JWT, seeding, options.
-- **API:** HTTP endpoints, OpenAPI/Scalar, exception handling.
+- **Domain:** Contains core business entities, value objects, enums, domain events, and business rules. It has no dependency on external infrastructure or application frameworks.
+- **Application:** Contains application use cases, CQRS features, DTOs, validators, interfaces, and application-level abstractions.
+- **Infrastructure:** Implements persistence, EF Core, repositories, Unit of Work, Identity, JWT, external services, and other infrastructure concerns.
+- **API:** Exposes HTTP endpoints through controllers and handles API configuration, authentication, authorization, OpenAPI/Scalar, and global exception handling.
+- **Domain.UnitTests:** Contains unit tests for domain entities, value objects, and business rules.
+- **Application.UnitTests:** Contains unit tests for application use cases, handlers, and application logic.
 
 ---
 
@@ -79,7 +70,7 @@ The connection string is read from the `DefaultConnection` key in `DonationHub.A
 
 Change `Server=.` to your SQL Server instance if needed.
 
-> **Security note:** never commit production credentials. Use User Secrets or environment variables for sensitive values.
+> **Security note:** Never commit production credentials. Use User Secrets or environment variables for sensitive values.
 
 ---
 
@@ -97,6 +88,7 @@ Create a new migration:
 
 ```bash
 dotnet ef migrations add MigrationName --project DonationHub.Infrastructure --startup-project DonationHub.Api
+
 dotnet ef database update --project DonationHub.Infrastructure --startup-project DonationHub.Api
 ```
 
@@ -128,6 +120,7 @@ dotnet user-secrets set "SeedAdmin:Password" "YourAdminPassword123" --project Do
 
 ```bash
 dotnet user-secrets set "SeedDevUsers:CampaignManager:Password" "YourManagerPassword123" --project DonationHub.Api
+
 dotnet user-secrets set "SeedDevUsers:Donor:Password" "YourDonorPassword123" --project DonationHub.Api
 ```
 
@@ -169,7 +162,7 @@ Swagger UI is not configured in this project; Scalar is used instead.
 1. Open Scalar.
 2. Call `POST /api/v1/auth/login` with the seeded credentials.
 3. Copy the returned access token.
-4. Open the **Authorization / Bearer** section in Scalar and paste the token **by itself**, without the `Bearer ` prefix.
+4. Open the Authorization / Bearer section in Scalar and paste the token by itself, without the `Bearer ` prefix.
 5. Call the protected endpoints (for example, admin-only endpoints require the Admin account).
 
 ---
@@ -178,36 +171,34 @@ Swagger UI is not configured in this project; Scalar is used instead.
 
 ### 8.1 Separating the Domain User from the Identity User
 
-Authentication data (email, password hash, roles) lives in `ApplicationUser`
-(Infrastructure/Identity, managed by ASP.NET Core Identity), while business data
-(full name, preferred language, active status, audit fields) lives in the
-`User` domain entity. Both share the same `Id`.
+Authentication data (email, password hash, roles) lives in `ApplicationUser` (Infrastructure/Identity, managed by ASP.NET Core Identity), while business data (full name, preferred language, active status, audit fields) lives in the `User` domain entity. Both share the same `Id`.
 
-This keeps the Domain layer free from any dependency on ASP.NET Core Identity,
-so the domain model can be tested in isolation and the identity provider can be
-replaced without touching business logic. The cost is that some operations
-(e.g. creating a user) must create both records inside one transaction.
+This keeps the Domain layer free from any dependency on ASP.NET Core Identity, so the domain model can be tested in isolation and the identity provider can be replaced without touching business logic. The cost is that some operations (e.g. creating a user) must create both records inside one transaction.
 
 ### 8.2 Data access: all operations go through repositories + Unit of Work
 
-Both writes and reads go through the repository interfaces (generic and
-specific, such as `ICategoryRepository`) and the Unit of Work, instead of using
-`DbContext` directly for reads as suggested by **SRS §3.3, Rule 5**.
+Both writes and reads go through the repository interfaces (generic and specific, such as `ICategoryRepository`) and the Unit of Work, instead of using `DbContext` directly for reads as suggested by **SRS §3.3, Rule 5**.
 
 The reasons:
 
-- **Services stay free of persistence code.** Application services depend only
-  on repository interfaces, so they never touch `DbContext` or EF Core, and every
-  query lives in one place (the repositories) where it can be reused and changed.
-- **One consistent approach.** The project is small, and using a single data
-  access path for reads and writes is simpler than maintaining two.
-- **Writes** are committed through a single `SaveChangesAsync()` in the Unit of
-  Work, and multi-step operations can run inside one transaction.
+- **Services stay free of persistence code.** Application services depend only on repository interfaces, so they never touch `DbContext` or EF Core, and every query lives in one place (the repositories) where it can be reused and changed.
+- **One consistent approach.** The project is small, and using a single data access path for reads and writes is simpler than maintaining two.
+- **Writes** are committed through a single `SaveChangesAsync()` in the Unit of Work, and multi-step operations can run inside one transaction.
 
-Read queries inside the repositories still use `AsNoTracking`, and entities are
-mapped to response DTOs in the service layer. The trade-off is that reads load
-full entities instead of projecting only the needed columns with `Select()`;
-this can be optimized later with dedicated repository methods if needed.
+Read queries inside the repositories still use `AsNoTracking`, and entities are mapped to response DTOs in the service layer. The trade-off is that reads load full entities instead of projecting only the needed columns with `Select()`; this can be optimized later with dedicated repository methods if needed.
+
+### 8.3 Result Pattern: centralized error handling
+
+The project uses the **Result Pattern** to represent expected application and business failures explicitly instead of relying on exceptions for normal failure scenarios.
+
+The main reasons for this decision are:
+
+- **Centralized error definitions:** Error codes, descriptions, and types are organized in one place, making errors easier to maintain and reuse across the application.
+- **Consistent responses:** Operations return a consistent `Result` or `Result<T>` structure, whether they succeed or fail.
+- **Explicit failure handling:** Callers can inspect `IsSuccess` or `IsFailure` and handle failures without relying on exceptions for expected business scenarios.
+- **Separation of concerns:** Business and application logic can report failures without depending on HTTP status codes or API response formats.
+
+Exceptions are still used for unexpected or exceptional situations, while the Result Pattern handles expected failures such as validation errors and business rule violations.
 
 ---
 
