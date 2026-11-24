@@ -1,7 +1,9 @@
-﻿using DonationHub.Application.Interfaces.Repositories;
+﻿using DonationHub.Application.Events;
+using DonationHub.Application.Interfaces.Repositories;
 using DonationHub.Application.Interfaces.Services;
 using DonationHub.Application.Interfaces.UnitOfWork;
 using DonationHub.Application.Options;
+using DonationHub.Infrastructure.Events;
 using DonationHub.Infrastructure.Identity;
 using DonationHub.Infrastructure.Implementaion.Repositories;
 using DonationHub.Infrastructure.Implementaion.Services;
@@ -74,6 +76,7 @@ namespace DonationHub.Infrastructure
             // Services         
             services.AddScoped<IIdentityService, IdentityService>();
             services.AddScoped<IJwtTokenService, JwtTokenService>();
+            services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>(); 
 
             services.AddScoped<DbSeeder>();
 

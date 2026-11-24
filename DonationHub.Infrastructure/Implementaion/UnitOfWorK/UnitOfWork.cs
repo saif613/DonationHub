@@ -1,4 +1,5 @@
-﻿using DonationHub.Application.Exceptions;
+﻿using DonationHub.Application.Events;
+using DonationHub.Application.Exceptions;
 using DonationHub.Application.Interfaces.Repositories;
 using DonationHub.Application.Interfaces.UnitOfWork;
 using DonationHub.Domain.Common;
@@ -19,17 +20,36 @@ namespace DonationHub.Infrastructure.Implementaion.UnitOfWorK
     {
 
         private readonly AppDbContext _context;
- 
-        public UnitOfWork(AppDbContext context)
+        private readonly IDomainEventDispatcher _domainEventDispatcher;
+
+        public UnitOfWork(AppDbContext context, IDomainEventDispatcher domainEventDispatcher)
         {
             _context = context;  
+            _domainEventDispatcher = domainEventDispatcher;
         }
 
-        public Task<int> SaveChangesAsync(CancellationToken ct = default) 
+        public async Task<int> SaveChangesAsync(CancellationToken ct = default) 
         {
             try
             {
-                return _context.SaveChangesAsync(ct);
+                var entities = _context.ChangeTracker
+                    .Entries<BaseEntity>()
+                    .Where(e => e.Entity.DomainEvents.Any())
+                    .Select(e => e.Entity)
+                    .ToList();
+
+                var domainEvents = entities
+                    .SelectMany(e => e.DomainEvents)
+                    .ToList();
+
+                var result = await _context.SaveChangesAsync(ct);
+
+                await _domainEventDispatcher.DispatchAsync(domainEvents, ct);
+
+                foreach (var entiry in entities)
+                    entiry.ClearDomainEvents();
+
+                return result;
             }
 
             catch (DbUpdateConcurrencyException ex)
